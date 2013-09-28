@@ -153,17 +153,16 @@ angular.module('Plasma.controllers', [])
             for(var pixKey in localPixels) {
                 if(localPixels.hasOwnProperty(pixKey)) {
                     var coords = pixKey.split(":");
-                    if(coords[0] < $scope.zoomPosition[0] ||
-                        coords[0] > $scope.zoomPosition[0]+zoomSize[0] ||
-                        coords[1] < $scope.zoomPosition[1] ||
-                        coords[1] > $scope.zoomPosition[1]+zoomSize[1]
-                        ) {  continue; }
                     drawZoomPixel(localPixels[pixKey],coords[0],coords[1]);
                 }
             }
         };
         
         var drawZoomPixel = function(color,x,y) {
+            if(x < $scope.zoomPosition[0] || // Check that pixel is within zoom area
+                x >= $scope.zoomPosition[0]+zoomSize[0] ||
+                y < $scope.zoomPosition[1] ||
+                y >= $scope.zoomPosition[1]+zoomSize[1]) {  return; }
             zoomContext.fillStyle = "#" + color;
             zoomContext.fillRect(parseInt(x-$scope.zoomPosition[0]) * zoomPixSize, 
                 parseInt(y-$scope.zoomPosition[1]) * zoomPixSize, zoomPixSize, zoomPixSize);

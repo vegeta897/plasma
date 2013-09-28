@@ -172,7 +172,7 @@ angular.module('Plasma.controllers', [])
         var changeZoomPosition = function(x,y) {
             mainHighContext.clearRect(lastZoomPosition[0]*mainPixSize,lastZoomPosition[1]*mainPixSize,
                 60*mainPixSize,60*mainPixSize); // Erase last position
-            $timeout();
+            $timeout(function(){});
             $scope.zoomPosition = [x,y];
             lastZoomPosition = [x,y];
             drawZoomCanvas();

@@ -1,0 +1,28 @@
+<div class="navbar navbar-fixed-top">
+    <div class="container">
+        <div class="navbar-header">
+            <h1><a href="#">Plasma</a></h1>
+        </div>
+        <div class="navbar-collapse collapse">
+            <p class="navbar-right" ng-show="user">Welcome back, <strong class="text-info">{{ user.email }}</strong> &mdash; <a href="#" ng-click="logOut()">Log out</a></p>
+            <form ng-show="!user && authStatus" class="navbar-form navbar-right" data-login-form="{{ authStatus }}" id="loginForm" ng-disabled="authStatus=='logging'" ng-submit="authenticate()">
+                <div class="form-group">
+                    <input ng-model="loginEmail" ng-disabled="authStatus=='logging'" id="inputLoginUser" type="email" placeholder="email" class="form-control">
+                </div>
+                <div class="form-group">
+                    <input ng-model="loginPassword" ng-disabled="authStatus=='logging'" id="inputLoginPass" type="password" placeholder="password" class="form-control">
+                </div>
+                <button ng-disabled="authStatus=='logging'" id="loginSubmit" type="submit" class="btn btn-success">Log In</button>
+            </form>
+        </div><!--/.navbar-collapse -->
+    </div>
+</div>
+<div id="mainContainer" class="container">
+    <canvas id="mainCanvas" width="600" height="600"> <!-- Main canvas -->
+        Your browser doesn't support canvases. <a href="http://www.google.com/chrome">Get a better one.</a>
+    </canvas>
+    <canvas id="mainPingCanvas" width="600" height="600"></canvas> <!-- Ping canvas -->
+    <canvas id="zoomCanvas" width="600" height="600"> <!-- Main canvas -->
+    </canvas>
+    <canvas id="zoomHighlightCanvas" width="600" height="600"></canvas> <!-- Highlight canvas -->
+</div>

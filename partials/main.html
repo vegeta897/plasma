@@ -18,11 +18,21 @@
     </div>
 </div>
 <div id="mainContainer" class="container">
-    <canvas id="mainCanvas" width="600" height="600"> <!-- Main canvas -->
-        Your browser doesn't support canvases. <a href="http://www.google.com/chrome">Get a better one.</a>
-    </canvas>
-    <canvas id="mainPingCanvas" width="600" height="600"></canvas> <!-- Ping canvas -->
-    <canvas id="zoomCanvas" width="600" height="600"> <!-- Main canvas -->
-    </canvas>
-    <canvas id="zoomHighlightCanvas" width="600" height="600"></canvas> <!-- Highlight canvas -->
+    <div class="canvas-container"> <!-- Left side canvases -->
+        <canvas id="mainCanvas" width="600" height="600"> <!-- Main canvas -->
+            Your browser doesn't support canvases. <a href="http://www.google.com/chrome">Get a better one.</a>
+        </canvas>
+        <canvas id="mainPingCanvas" width="600" height="600"></canvas> <!-- Ping canvas -->
+        <canvas id="mainHighlightCanvas" width="600" height="600"></canvas> <!-- Main highlight canvas -->
+    </div>
+    <div class="canvas-container"> <!-- Right side canvases -->
+        <canvas id="zoomCanvas" width="600" height="600"></canvas> <!-- Main canvas -->
+        <canvas id="zoomHighlightCanvas" width="600" height="600"></canvas> <!-- Zoom highlight canvas -->
+    </div>
+    <div class="span1 text-right pull-left coords">
+        {{ zoomPosition[0] }} , {{ zoomPosition[1] }}
+    </div>
+    <div class="span1 text-right pull-right coords">
+        {{ overPixel[0] }} , {{ overPixel[1] }}
+    </div>
 </div>

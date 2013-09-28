@@ -13,11 +13,16 @@ p.navbar-right { margin: 0 -15px 0 0; line-height: 53px; }
 
 #mainContainer {
     width: 1204px;
-    padding: 0;
+    padding: 4px 0 0;
+}
+
+.canvas-container {
+    width: 602px;
+    float: left;
 }
 
 canvas { position: relative; }
-#mainPingCanvas, #zoomHighCanvas { position: absolute; }
+#mainPingCanvas, #mainHighlightCanvas, #zoomHighlightCanvas { position: absolute; top: -5000px; }
 
 /* --- Unresponsive Bootstrap --- */
 

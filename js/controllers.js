@@ -202,7 +202,7 @@ angular.module('Plasma.controllers', [])
             for(var pixKey in localPixels) {
                 if(localPixels.hasOwnProperty(pixKey)) {
                     var coords = pixKey.split(":");
-                    drawZoomPixel(localPixels[pixKey],coords[0],coords[1]);
+                    drawZoomPixel(localPixels[pixKey].color.hex,coords[0],coords[1]);
                 }
             }
         };

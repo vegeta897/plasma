@@ -1,7 +1,7 @@
 <div class="navbar navbar-fixed-top">
     <div class="container">
         <div class="navbar-header">
-            <h1><a href="#">Plasma</a></h1>
+            <h1><a href="#"><span class="plasma-color">Plasma</span></a></h1>
         </div>
         <div class="navbar-collapse collapse">
             <p class="navbar-right" ng-show="user">Welcome back, <strong class="text-info">{{ user.email }}</strong> &mdash; <a href="#" ng-click="logOut()">Log out</a></p>
@@ -29,10 +29,31 @@
         <canvas id="zoomCanvas" width="600" height="600"></canvas> <!-- Main canvas -->
         <canvas id="zoomHighlightCanvas" width="600" height="600"></canvas> <!-- Zoom highlight canvas -->
     </div>
-    <div class="span1 text-right pull-left coords">
+    <div class="span1 pull-left coords">
         {{ zoomPosition[0] }} , {{ zoomPosition[1] }}
     </div>
     <div class="span1 text-right pull-right coords">
         {{ overPixel[0] }} , {{ overPixel[1] }}
+    </div>
+</div>
+<div id="uiContainer" ng-show="user" class="container">
+    <div class="row">
+        <div class="col-xs-4">
+            <h2>Welcome to <span class="plasma-color">Plasma</span>!</h2>
+            <div ng-show="newUser">
+                <p>To begin, add a brain cell to your inventory.</p>
+                <button class="btn btn-success" ng-click="addBrain()">Add Brain Cell</button>
+            </div>
+        </div>
+        <div id="inventory" class="col-xs-8">
+            <h2>Inventory</h2>
+            <ul class="list-unstyled">
+                <li ng-repeat="item in inventory">
+                    <button ng-disabled="item.adding" ng-click="addCell(item)" class="btn btn-xs btn-default"><span class="glyphicon glyphicon-plus"></span></button>
+                    <span ng-init="style={background: '#'+item.color.hex}" ng-style="style" class="item-color"></span>
+                    {{ item.name }}
+                </li>
+            </ul>
+        </div>
     </div>
 </div>

@@ -3,11 +3,13 @@
 angular.module('Plasma.controllers', [])
 	.controller('Main', ['$scope', '$timeout', '$filter', 'localStorageService', 'utility', function($scope, $timeout, $filter, localStorageService, utility) {
         
-        $scope.zoomPosition = [0,0]; // Tracking zoom window position
+        $scope.zoomPosition = [120,120]; // Tracking zoom window position
         $scope.overPixel = ['-','-']; // Tracking your coordinates'
         $scope.authStatus = '';
+        $scope.inventory = {}; // Local user inventory, modified in firebase callbacks
         var mainPixSize = 2, zoomPixSize = 10, zoomSize = [60,60], lastZoomPosition = [0,0], localPixels = {};
         var panMouseDown = 0, zoomMouseDown = 0, keyPressed = false, keyUpped = true, pinging = false;
+        var userID, fireUser, fireInventory;
         
         // Authentication
         $scope.authenticate = function() {
@@ -17,21 +19,26 @@ angular.module('Plasma.controllers', [])
         $scope.logOut = function() { auth.logout(); };
 
         // Create a reference to the pixel data for our canvas
-        var fireRef = new Firebase('https://color-chaos.firebaseio.com/canvas1');
-        var fireRefPlasma = new Firebase('https://plasma-game.firebaseio.com');
+        var fireRef = new Firebase('https://plasma-game.firebaseio.com/map1');
         // Create a reference to the auth service for our data
-        var auth = new FirebaseSimpleLogin(fireRefPlasma, function(error, user) {
+        var auth = new FirebaseSimpleLogin(fireRef, function(error, user) {
             $timeout(function() {
                 if(error) {
                     console.log(error, $scope.loginEmail, $scope.loginPassword);
                     if(error.code == 'INVALID_USER') {
-                        auth.createUser($scope.loginEmail, $scope.loginPassword, function(createdError, createdUser) {
+                        auth.createUser($scope.loginEmail, $scope.loginPassword, 
+                            function(createdError, createdUser) {
                             if(createdError) {
                                 console.log(createdError);
                             } else {
-                                console.log(createdUser);
+                                console.log('user created:',createdUser.id,createdUser.email);
+                                userID = createdUser.id;
                                 $scope.user = createdUser;
-                                $scope.authStatus = 'logged';
+                                fireUser = fireRef.child('users').child(userID);
+                                fireUser.child('new').set('true', function() {
+                                    initUser();
+                                });
+                                $timeout(function() { $scope.authStatus = 'logged'; });
                             }
                         })
                     } else if(error.code == 'INVALID_PASSWORD') {
@@ -40,9 +47,12 @@ angular.module('Plasma.controllers', [])
                         $scope.authStatus = 'badEmail';
                     }
                 } else if(user) {
-                    console.log(user);
-                    $scope.authStatus = 'logged';
+                    console.log('logged in:',user.id,user.email);
                     $scope.user = user;
+                    userID = user.id;
+                    fireUser = fireRef.child('users').child(userID);
+                    initUser();
+                    $scope.authStatus = 'logged';
                 } else {
                     console.log('logged out');
                     $scope.authStatus = 'notLogged';
@@ -50,8 +60,18 @@ angular.module('Plasma.controllers', [])
             });
         });
         
+        var initUser = function() {
+            fireUser.child('new').once('value', function(snapshot) {
+                $timeout(function() { $scope.newUser = (snapshot.val() == 'true'); });
+            });
+            fireInventory = fireUser.child('inventory');
+            fireInventory.on('child_added', updateInventory);
+            fireInventory.on('child_changed', updateInventory);
+            fireInventory.on('child_removed', removeInventory);
+        };
+        
         // Attempt to get these variables from localstorage
-        var localStores = [];
+        var localStores = ['zoomPosition'];
         for(var i = 0; i < localStores.length; i++) {
             if(localStorageService.get(localStores[i])) {
                 $scope[localStores[i]] = localStorageService.get(localStores[i]);
@@ -103,6 +123,36 @@ angular.module('Plasma.controllers', [])
         // Disable text selection.
         mainHighCanvas.onselectstart = function() { return false; };
         zoomHighCanvas.onselectstart = function() { return false; };
+
+        $scope.addBrain = function() {
+            fireInventory.push({
+                created: new Date().getTime(), type: 'brain', color: utility.generate({
+                    minHue: 0, maxHue: 360, minSat: 50, maxSat: 100, minVal: 30, maxVal: 100
+                }, function() {
+                    
+                })
+            });
+        };
+        
+        $scope.addCell = function(cell) {
+            cell.adding = true;
+        };
+        
+        var updateInventory = function(snapshot) {
+            var itemAdded = snapshot.val();
+            switch(itemAdded.type) {
+                case 'brain':
+                    fireUser.child('new').set('false');
+                    itemAdded.name = utility.capitalize(itemAdded.type) + ' Cell';
+                    break;
+                default:
+                    break;
+            }
+            $timeout(function(){ $scope.inventory[snapshot.name()] = itemAdded; });
+        };
+        var removeInventory = function(snapshot) {
+            $timeout(function(){ delete $scope.inventory[snapshot.name()]; });
+        };
         
         var drawOnMouseDown = function() {
             if($scope.authStatus != 'logged') { return; } // If not authed
@@ -174,11 +224,12 @@ angular.module('Plasma.controllers', [])
             $timeout(function(){});
             $scope.zoomPosition = [x,y];
             lastZoomPosition = [x,y];
+            localStorageService.set('zoomPosition',$scope.zoomPosition);
             drawZoomCanvas();
             mainHighContext.fillStyle = 'rgba(255, 255, 255, 0.03)'; // Draw new zoom rect
             mainHighContext.fillRect(x*mainPixSize,y*mainPixSize,60*mainPixSize,60*mainPixSize);
         };
-        changeZoomPosition(0,0);
+        changeZoomPosition($scope.zoomPosition[0],$scope.zoomPosition[1]);
         
         var panOnMouseDown = function(e) {
             e.preventDefault();

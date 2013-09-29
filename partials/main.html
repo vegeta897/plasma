@@ -36,22 +36,50 @@
         {{ overPixel[0] }} , {{ overPixel[1] }}
     </div>
 </div>
-<div id="uiContainer" ng-show="user" class="container">
+<div id="uiContainer" ng-show="userInit" class="container">
     <div class="row">
-        <div class="col-xs-4">
+        <div id="info" class="col-xs-4">
             <h2>Welcome to <span class="plasma-color">Plasma</span>!</h2>
-            <p ng-repeat="paragraph in helpText|nlToArray">{{ paragraph }}</p>
+            <p ng-repeat="paragraph in helpText | nlToArray">{{ paragraph }}</p>
             <button ng-show="newUser" class="btn btn-success" ng-click="addBrain()">Add Brain Cell</button>
+            <button ng-show="user.id == 1" class="btn btn-danger" ng-click="resetUser()">Reset</button>
         </div>
-        <div id="inventory" class="col-xs-8">
+        <div id="inventory" class="col-xs-3">
             <h2>Inventory</h2>
             <ul class="list-unstyled">
+                <li class="text-muted" ng-hide="inventory">No items</li>
                 <li ng-repeat="item in inventory">
-                    <button ng-disabled="item.adding" ng-click="addCell(item)" class="btn btn-xs btn-default"><span class="glyphicon glyphicon-plus"></span></button>
+                    <button type="button" ng-disabled="item.adding" ng-click="addCell(item)" 
+                            class="btn btn-xs btn-default"><span class="glyphicon glyphicon-plus"></span></button>
                     <span ng-init="style={background: '#'+item.color.hex}" ng-style="style" class="item-color"></span>
-                    {{ item.name }}
+                    {{ item.name | itemDisplay }}
                 </li>
             </ul>
+        </div>
+        <div id="cellInfoSpacer" ng-hide="selectedCell" class="col-xs-3"></div>
+        <div id="cellInfo" ng-show="selectedCell" class="col-xs-3">
+            <h2>Cell Info</h2>
+            <p><span ng-style="{background: '#'+selectedCell.color.hex}" class="item-color"></span>
+                {{ selectedCell.type | itemDisplay }}&emsp;
+                <span class="text-muted">({{ selectedCell.grid | grid }})</span>
+            </p>
+            <div ng-show="selectedCell.contents.length > 0" class="well">
+                <h3>Contents</h3>
+                <ul class="list-unstyled">
+                    <li ng-repeat="item in selectedCell.contents">
+                        <button type="button" ng-click="harvestItem($index,item)" class="btn btn-xs btn-default">
+                            <span class="glyphicon glyphicon-arrow-left"></span></button>
+                        {{ item | itemDisplay }}
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div id="lifeform" class="col-xs-2">
+            <h2>Lifeform</h2>
+            <table class="table">
+                <tr><td>Cells</td><td><strong>{{ userCells }}</strong></td></tr>
+                <tr><td>Heartbeats</td><td><strong>{{ heartbeats }}</strong></td></tr>
+            </table>
         </div>
     </div>
 </div>

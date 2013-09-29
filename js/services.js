@@ -99,19 +99,35 @@ angular.module('Plasma.services', [])
         return {
             generate: function(/* palette (array) OR maxMins (object has 'maxSat') */) {
             //    var palette = jQuery.isArray(arguments[0]) ? arguments[0] : undefined;
-                var maxMins = arguments[0].hasOwnProperty('maxSat') ? arguments[0] : undefined;
+                if(arguments[0]) {
+                    var maxMins = arguments[0].hasOwnProperty('maxSat') ? arguments[0] : undefined;
+                    var cellType = typeof arguments[0] == 'string' ? arguments[0] : undefined;
+                    if(arguments[1]) {
+                        var brainColor = arguments[1].hasOwnProperty('hsv') ? arguments[1] : undefined;
+                    }
+                }
             //    var averages = getAverages(palette);
                 var hsv = {};
             //    if(averages) { hsv = applyAverages(averages); } else
                 if(maxMins) {
                     var hueRange = maxMins.maxHue - maxMins.minHue;
                     var satRange = maxMins.maxSat - maxMins.minSat;
-                    var valRange = maxMins.maxVal = maxMins.minVal;
+                    var valRange = maxMins.maxVal - maxMins.minVal;
                     hsv = {
                         hue: Math.floor(Math.random()*hueRange + maxMins.minHue),
                         sat: Math.round(Math.random()*satRange + maxMins.minSat)/100,
                         val: Math.round(Math.random()*valRange + maxMins.minVal)/100
                     };
+                } else if(cellType && brainColor) {
+                    switch(cellType) {
+                        case 'somatic':
+                            hsv = {
+                                hue: brainColor.hsv.hue + Math.floor(Math.random()*26 - 13),
+                                sat: Math.round(Math.random()*30 + 15)/100,
+                                val: Math.round(Math.random()*50 + 15)/100
+                            };
+                            break;
+                    }
                 } else {
                     hsv = {
                         hue: Math.floor(Math.random()*360),
@@ -119,10 +135,50 @@ angular.module('Plasma.services', [])
                         val: Math.round(Math.random()*100)/100
                     };
                 }
+                if(hsv.hue >= 360) { // Fix hue wraparound
+                    hsv.hue = hsv.hue % 360;
+                } else if (hsv.hue < 0) {
+                    hsv.hue = 360 + (hsv.hue % 360);
+                }
                 return {
                     hex: hsvToRGB(hsv),
                     hsv: hsv
                 };
+            },
+            tutorial: function(step) {
+                var text = '';
+                switch(parseInt(step)) {
+                    case 0:
+                        text = 'To begin, add a Brain Cell to your inventory.';
+                        break;
+                    case 1:
+                        text = 'Great! Now click the [+] button, and place it somewhere on the map.';
+                        break;
+                    case 2:
+                        text = 'Woo! There\'s your brain cell.\n' +
+                            'The brain cell is the center of your new life form.\n' +
+                            'Any cell you place from now on must connect to either your brain, ' +
+                            'or another cell you placed.\n' +
+                            'Click on your brain cell to view its properties.';
+                        break;
+                    case 3:
+                        text = 'When you select one of your cells, its properties are shown.\n' +
+                            'You can see the color, cell type, and the cell\'s contents.\n' + 
+                            'Certain cells produce certain contents at certain rates.\n' +
+                            'Click the buttons to transfer the contents to your inventory.';
+                        break;
+                    case 4:
+                        text = 'Excellent! Now you can place these new cells around your brain cell.\n' +
+                            'Somatic cells are the most basic type of cell, and can only be placed ' + 
+                            'next to special cells like the brain.';
+                        break;
+                    case 5:
+                        text = 'Great, you\'re up to a 5 cell organism!\n' +
+                            'Each cell you place makes some time pass. This time span is called a heartbeat.\n' +
+                            'As heartbeats increment, your cells produce new contents to harvest.';
+                        break;
+                }
+                return text;
             },
             rgbToHex: function rgbToHex(r, g, b) {
                 if (r > 255 || g > 255 || b > 255)

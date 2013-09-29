@@ -7,11 +7,10 @@ angular.module('Plasma.controllers', [])
         $scope.overPixel = ['-','-']; // Tracking your coordinates'
         $scope.authStatus = '';
         $scope.helpText = '';
-        $scope.inventory = {}; // Local user inventory, modified in firebase callbacks
-        $scope.addingCell = {}; // Cell being added when its [+] button is clicked in inventory
+        $scope.userCells = 0;
         var mainPixSize = 2, zoomPixSize = 10, zoomSize = [60,60], lastZoomPosition = [0,0], localPixels = {};
         var panMouseDown = 0, zoomMouseDown = 0, keyPressed = false, keyUpped = true, pinging = false;
-        var userID, fireUser, fireInventory;
+        var userID, fireUser, fireInventory, tutorialStep = 0;
         
         // Authentication
         $scope.authenticate = function() {
@@ -38,7 +37,7 @@ angular.module('Plasma.controllers', [])
                                 $scope.user = createdUser;
                                 fireRef.auth(createdUser.token, function() {
                                     fireUser = fireRef.child('users').child(userID);
-                                    fireUser.child('new').set('true', function() {
+                                    fireUser.set({heartbeats: 0,new:'true'}, function() {
                                         initUser();
                                     });
                                     $timeout(function() { $scope.authStatus = 'logged'; });
@@ -64,11 +63,29 @@ angular.module('Plasma.controllers', [])
             });
         });
         
+        var tutorial = function(action) {
+            if(action == 'init') {
+                if(localStorageService.get('tutorialStep')) {
+                    tutorialStep = localStorageService.get('tutorialStep');
+                } else { tutorialStep = 0; }
+            } else { tutorialStep++; }
+            $timeout(function() { 
+                $scope.helpText = utility.tutorial(tutorialStep);
+                localStorageService.set('tutorialStep',tutorialStep);
+            });
+        };
+        tutorial('init');
+        
         var initUser = function() {
-            fireUser.child('new').once('value', function(snapshot) {
+            fireUser.once('value', function(snapshot) {
                 $timeout(function() { 
-                    $scope.newUser = (snapshot.val() == 'true');
-                    $scope.helpText = 'To begin, add a Brain Cell to your inventory.';
+                    $scope.heartbeats = snapshot.val().heartbeats;
+                    $scope.brainColor = snapshot.val().brainColor;
+                    $scope.newUser = (snapshot.val()['new'] == 'true');
+                    $scope.userInit = true;
+                    if(!$scope.newUser) { return; }
+                    tutorialStep = -1;
+                    tutorial('next');
                 });
             });
             fireInventory = fireUser.child('inventory');
@@ -130,20 +147,45 @@ angular.module('Plasma.controllers', [])
         // Disable text selection.
         mainHighCanvas.onselectstart = function() { return false; };
         zoomHighCanvas.onselectstart = function() { return false; };
-
+        
+        $scope.resetUser = function() {
+            fireUser.set({heartbeats: 0, new: 'true'});
+        };
+        
         $scope.addBrain = function() {
+            tutorial('next');
+            $scope.brainColor = utility.generate({ minHue: 0, maxHue: 360, 
+                minSat: 50, maxSat: 100, minVal: 60, maxVal: 100});
+            fireUser.child('brainColor').set($scope.brainColor);
             fireInventory.push({
-                created: new Date().getTime(), type: 'brain', 
-                color: utility.generate({
-                    minHue: 0, maxHue: 360, minSat: 50, maxSat: 100, minVal: 60, maxVal: 100
-                })
+                type: 'brain', color: $scope.brainColor,
+                contents: [ 'somatic', 'somatic', 'somatic', 'somatic' ]
             });
         };
         
         $scope.addCell = function(cell) {
             cell.adding = true;
             $scope.addingCell = cell;
+            jQuery(zoomHighCanvas).unbind('mousedown');
             jQuery(zoomHighCanvas).mousedown(placeCell);
+        };
+        
+        $scope.harvestItem = function(id,item) {
+            fireInventory.push({
+                type: item, contents: [],
+                color: utility.generate(item, $scope.brainColor)
+            });
+            var newContents = $scope.selectedCell.contents;
+            newContents.splice(id,1);
+            fireRef.child('cells').child($scope.selectedCell.grid).child('contents').set(newContents);
+            if(newContents.length == 0 && tutorialStep == 3) { tutorial('next'); }
+        };
+        
+        var heartbeat = function() {
+            $timeout(function(){
+                $scope.heartbeats += 1;
+                fireUser.child('heartbeats').set($scope.heartbeats);
+            });
         };
         
         var updateInventory = function(snapshot) {
@@ -153,13 +195,12 @@ angular.module('Plasma.controllers', [])
                 switch(itemAdded.type) {
                     case 'brain':
                         fireUser.child('new').set('false');
-                        itemAdded.name = utility.capitalize(itemAdded.type) + ' Cell';
-                        $scope.helpText = 'Great! Now click the [+] button, and place it somewhere on the map.';
                         $scope.newUser = false;
                         break;
                     default:
                         break;
                 } 
+                if(!$scope.inventory) { $scope.inventory = {}; }
                 $scope.inventory[snapshot.name()] = itemAdded; 
             });
         };
@@ -167,33 +208,78 @@ angular.module('Plasma.controllers', [])
             $timeout(function(){
                 switch(snapshot.val().type) {
                     case 'brain':
-                        $scope.helpText = 'Woo! There\'s your brain cell.\n' + 
-                            'The brain cell is the center of your new life form.\n' + 
-                            'Any cell you place from now on must connect to either your brain, ' + 
-                            'or another cell you placed.';
+                        tutorial('next');
                         break;
                     default:
                         break;
                 }
                 delete $scope.inventory[snapshot.name()]; 
+                var items = 0; // Check how many items are in the inventory
+                for(var key in $scope.inventory) {
+                    if($scope.inventory.hasOwnProperty(key)) { items++; break; }
+                }
+                if(items == 0) { 
+                    $scope.inventory = null; 
+                    if(tutorialStep == 4) { tutorial('next'); }
+                }
+            });
+        };
+        
+        var validLocation = function(cellType) {
+            var loc = $scope.overPixel;
+            switch(cellType) {
+                case 'brain':
+                    return !localPixels.hasOwnProperty(loc.join(':'));
+                break;
+                case 'somatic':
+                    var neighbors = [[loc[0]-1,loc[1]].join(':'), [loc[0]+1,loc[1]].join(':'),
+                        [loc[0],loc[1]-1].join(':'), [loc[0],loc[1]+1].join(':')];
+                    var brainFound = false;
+                    for (var i = 0; i < neighbors.length; i++) {
+                        if(localPixels.hasOwnProperty(neighbors[i])) {
+                            if(localPixels[neighbors[i]].type == 'brain') { brainFound = true; break; }
+                        }
+                    }
+                    return brainFound;
+                break;
+                default:
+                    return false;
+                break;
+            }
+        };
+
+        var selectCell = function(event) {
+            if($scope.authStatus != 'logged') { return; } // If not authed
+            if(event.which == 3) { event.preventDefault(); return; } // If right click pressed
+            $timeout(function() {
+                if(localPixels.hasOwnProperty($scope.overPixel[0] + ":" + $scope.overPixel[1])) {
+                    $scope.selectedCell = localPixels[$scope.overPixel[0] + ":" + $scope.overPixel[1]];
+                    $scope.selectedCell.grid = $scope.overPixel[0] + ":" + $scope.overPixel[1];
+                } else { $scope.selectedCell = null; }
+                dimPixel(); // Will draw select box
+                if(!$scope.selectedCell) { return; }
+                if($scope.selectedCell.type == 'brain' && tutorialStep == 2) { tutorial('next'); }
             });
         };
         
         var placeCell = function(event) {
             if($scope.authStatus != 'logged') { return; } // If not authed
             if(event.which == 3) { event.preventDefault(); return; } // If right click pressed
-            zoomHighCanvas.style.cursor = 'none'; // Hide cursor
             dimPixel(); // Dim the pixel being drawn on
             var cell = $scope.addingCell;
+            if(!validLocation(cell.type)) { return; }
             // Add the cell in firebase
             fireRef.child('cells').child($scope.overPixel[0] + ":" + $scope.overPixel[1]).set(
                 {
-                    owner: userID, type: cell.type, color: cell.color, createdTime: new Date().getTime()
+                    owner: userID, type: cell.type, color: cell.color, created: $scope.heartbeats,
+                    contents: cell.contents ? cell.contents : []
                 }
             );
             fireInventory.child(cell.fireID).remove();
             $scope.addingCell = {};
             jQuery(zoomHighCanvas).unbind('mousedown');
+            jQuery(zoomHighCanvas).mousedown(selectCell);
+            heartbeat();
         };
 
         var drawZoomCanvas = function() {
@@ -261,7 +347,7 @@ angular.module('Plasma.controllers', [])
             var x = Math.floor((e.pageX - offset.left) / zoomPixSize),
                 y = Math.floor((e.pageY - offset.top) / zoomPixSize);
             // If the pixel location has changed
-            if($scope.overPixel[0] != x || $scope.overPixel[1] != y) {
+            if($scope.overPixel[0] != x + $scope.zoomPosition[0] || $scope.overPixel[1] != y + $scope.zoomPosition[1]) {
                 zoomHighCanvas.style.cursor = 'default'; // Show cursor
                 dimPixel(); // Dim the previous pixel
                 $scope.$apply(function() {
@@ -271,12 +357,26 @@ angular.module('Plasma.controllers', [])
                 highlightPixel(); // Highlight this pixel
             }
         };
+        // Draw selection box around selected cell
+        var drawSelect = function() {
+            if(!$scope.selectedCell) { return; }
+            var coords = $scope.selectedCell.grid.split(':');
+            zoomHighContext.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            zoomHighContext.fillRect((coords[0]-$scope.zoomPosition[0]) * zoomPixSize-1,
+                (coords[1]-$scope.zoomPosition[1]) * zoomPixSize-1, zoomPixSize+2, zoomPixSize+2);
+            zoomHighContext.clearRect((coords[0]-$scope.zoomPosition[0]) * zoomPixSize+2,
+                (coords[1]-$scope.zoomPosition[1]) * zoomPixSize-1, zoomPixSize-4, zoomPixSize+2);
+            zoomHighContext.clearRect((coords[0]-$scope.zoomPosition[0]) * zoomPixSize-1,
+                (coords[1]-$scope.zoomPosition[1]) * zoomPixSize+2, zoomPixSize+2, zoomPixSize-4);
+            zoomHighContext.clearRect((coords[0]-$scope.zoomPosition[0]) * zoomPixSize,
+                (coords[1]-$scope.zoomPosition[1]) * zoomPixSize, zoomPixSize, zoomPixSize);
+        };
         // Dim the pixel after leaving it
         var dimPixel = function() {
             if($scope.overPixel[0] != '-') {
-                zoomHighContext.clearRect(($scope.overPixel[0]-$scope.zoomPosition[0]) * zoomPixSize,
-                    ($scope.overPixel[1]-$scope.zoomPosition[1]) * zoomPixSize, zoomPixSize, zoomPixSize);
+                zoomHighContext.clearRect(0,0,600,600);
             }
+            drawSelect();
         };
         // When the mouse leaves the canvas
         var zoomOnMouseOut = function() {
@@ -336,27 +436,30 @@ angular.module('Plasma.controllers', [])
         };
         var hidePing = function(snapshot) {
             var coords = snapshot.name().split(":");
-            mainPingContext.clearRect(coords[0] * mainPixSize - 15 + mainPixSize/2, coords[1] * mainPixSize - 15 + mainPixSize/2, 30, 30);
+            mainPingContext.clearRect(coords[0] * mainPixSize - 15 + mainPixSize/2, coords[1] * mainPixSize - 15 + mainPixSize/2, 
+                30, 30);
         };
         
         jQuery(zoomHighCanvas).mousemove(zoomOnMouseMove);
         jQuery(zoomHighCanvas).mouseout(zoomOnMouseOut);
-        jQuery(mainHighCanvas).mousedown(panOnMouseDown);
+        jQuery(zoomHighCanvas).mousedown(selectCell);
         jQuery(mainHighCanvas).mousemove(panOnMouseMove);
+        jQuery(mainHighCanvas).mousedown(panOnMouseDown);
         jQuery(mainHighCanvas).mouseup(panOnMouseUp);
         jQuery(window).resize(alignCanvases); // Re-align canvases on window resize
         
-        // Add callbacks that are fired any time the pixel data changes and adjusts the canvas appropriately
-        // Note that child_added events will be fired for initial pixel data as well
+        // When a pixel is added
         var drawPixel = function(snapshot) {
+            if(snapshot.val().owner == userID && !localPixels.hasOwnProperty(snapshot.name())) { $scope.userCells++; }
             localPixels[snapshot.name()] = snapshot.val();
             var coords = snapshot.name().split(":");
             drawZoomPixel(snapshot.val().color.hex,coords[0],coords[1]);
             mainContext.fillStyle = "#" + snapshot.val().color.hex;
             mainContext.fillRect(parseInt(coords[0]) * mainPixSize, parseInt(coords[1]) * mainPixSize, mainPixSize, mainPixSize);
         };
-        // Erase a pixel
+        // When a pixel is removed
         var clearPixel = function(snapshot) {
+            if(snapshot.val().owner == userID) { $scope.userCells--; }
             delete localPixels[snapshot.name()];
             var coords = snapshot.name().split(":");
             $timeout(function(){ alignCanvases(); }, 200); // Realign canvases

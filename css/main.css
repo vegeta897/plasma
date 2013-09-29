@@ -9,13 +9,9 @@ h1 { margin: 4px 0 0; }
 h1 a:hover, h1 a:focus { text-decoration: none; }
 
 .plasma-color {
-    color: #8fc1d3;
-    text-shadow: none;
-    -webkit-text-fill-color: transparent;
-    background: -webkit-linear-gradient(left top, #8fc1d3, #8fd3a0),
-    url(path/to/bg/image) repeat;
-    background: -o-linear-gradient(transparent, transparent);
-    -webkit-background-clip: text;
+    color: #8fc1d3; text-shadow: none; -webkit-text-fill-color: transparent;
+    background: -webkit-linear-gradient(left top, #8fc1d3, #8fd3a0);
+    background: -o-linear-gradient(transparent, transparent); -webkit-background-clip: text;
 }
 
 #loginForm { margin-right: -30px; }
@@ -37,10 +33,11 @@ canvas { position: relative; }
 
 #uiContainer {  }
 
-p { color: #999; }
-h2 { color: #c8c8c8; font-size: 18px; }
 
-#inventory ul button {
+#info h2 { color: #c8c8c8; font-size: 20px }
+
+#uiContainer li { margin-bottom: 3px; }
+#uiContainer li button {
     position: relative; top: -1px;
     margin-right: 6px;
 }
@@ -54,6 +51,25 @@ h2 { color: #c8c8c8; font-size: 18px; }
     margin-right: 4px;
 }
 
+#cellInfo .well { padding-bottom: 5px; display: inline-block; }
+#cellInfo h3 { font-size: 16px; margin: 0 0 10px; color: #737880; }
+#cellInfo ul { margin-bottom: 0; }
+#cellInfo li button {
+    position: relative; top: -1px;
+    margin-right: 6px;
+    padding: 0 4px;
+}
+
+#lifeform table { background: transparent; }
+#lifeform td { padding: 4px 6px 0 0; border: none; color: #999; }
+strong { color: #ccc; }
+
+
+/* --- Bootstrap Overrides --- */
+
+p { color: #999; }
+h2 { color: #aaa; font-size: 18px; line-height: 22px; }
+.well { padding: 8px; background-color: #24272b; border-color: #1b1e21; }
 
 /* --- Unresponsive Bootstrap --- */
 

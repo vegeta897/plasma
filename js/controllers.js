@@ -113,14 +113,14 @@ angular.module('Plasma.controllers', [])
         };
         
         // Keep track of if the mouse is up or down
-        zoomHighCanvas.onmousedown = function() { 
+        zoomHighCanvas.onmousedown = function(event) { 
             zoomMouseDown = 1; 
             if(event.which == 2) {
                 
             }
             return false; 
         };
-        zoomHighCanvas.onmouseout = zoomHighCanvas.onmouseup = function() {
+        zoomHighCanvas.onmouseout = zoomHighCanvas.onmouseup = function(event) {
             if(event.which == 2) {
                 
             }
@@ -179,7 +179,7 @@ angular.module('Plasma.controllers', [])
             });
         };
         
-        var placeCell = function() {
+        var placeCell = function(event) {
             if($scope.authStatus != 'logged') { return; } // If not authed
             if(event.which == 3) { event.preventDefault(); return; } // If right click pressed
             zoomHighCanvas.style.cursor = 'none'; // Hide cursor

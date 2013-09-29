@@ -9,9 +9,13 @@ h1 { margin: 4px 0 0; }
 h1 a:hover, h1 a:focus { text-decoration: none; }
 
 .plasma-color {
-    background-image:-webkit-gradient( linear, left top, right top,
-    color-stop(0, #8fc1d3), color-stop(1, #8fd3a0) );
-    color:transparent; -webkit-background-clip: text; text-shadow: none;
+    color: #8fc1d3;
+    text-shadow: none;
+    -webkit-text-fill-color: transparent;
+    background: -webkit-linear-gradient(left top, #8fc1d3, #8fd3a0),
+    url(path/to/bg/image) repeat;
+    background: -o-linear-gradient(transparent, transparent);
+    -webkit-background-clip: text;
 }
 
 #loginForm { margin-right: -30px; }

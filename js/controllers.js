@@ -36,11 +36,13 @@ angular.module('Plasma.controllers', [])
                                 console.log('user created:',createdUser.id,createdUser.email);
                                 userID = createdUser.id;
                                 $scope.user = createdUser;
-                                fireUser = fireRef.child('users').child(userID);
-                                fireUser.child('new').set('true', function() {
-                                    initUser();
+                                fireRef.auth(createdUser.token, function() {
+                                    fireUser = fireRef.child('users').child(userID);
+                                    fireUser.child('new').set('true', function() {
+                                        initUser();
+                                    });
+                                    $timeout(function() { $scope.authStatus = 'logged'; });
                                 });
-                                $timeout(function() { $scope.authStatus = 'logged'; });
                             }
                         })
                     } else if(error.code == 'INVALID_PASSWORD') {

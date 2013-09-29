@@ -6,7 +6,9 @@ angular.module('Plasma.controllers', [])
         $scope.zoomPosition = [120,120]; // Tracking zoom window position
         $scope.overPixel = ['-','-']; // Tracking your coordinates'
         $scope.authStatus = '';
+        $scope.helpText = '';
         $scope.inventory = {}; // Local user inventory, modified in firebase callbacks
+        $scope.addingCell = {}; // Cell being added when its [+] button is clicked in inventory
         var mainPixSize = 2, zoomPixSize = 10, zoomSize = [60,60], lastZoomPosition = [0,0], localPixels = {};
         var panMouseDown = 0, zoomMouseDown = 0, keyPressed = false, keyUpped = true, pinging = false;
         var userID, fireUser, fireInventory;
@@ -62,7 +64,10 @@ angular.module('Plasma.controllers', [])
         
         var initUser = function() {
             fireUser.child('new').once('value', function(snapshot) {
-                $timeout(function() { $scope.newUser = (snapshot.val() == 'true'); });
+                $timeout(function() { 
+                    $scope.newUser = (snapshot.val() == 'true');
+                    $scope.helpText = 'To begin, add a Brain Cell to your inventory.';
+                });
             });
             fireInventory = fireUser.child('inventory');
             fireInventory.on('child_added', updateInventory);
@@ -126,75 +131,67 @@ angular.module('Plasma.controllers', [])
 
         $scope.addBrain = function() {
             fireInventory.push({
-                created: new Date().getTime(), type: 'brain', color: utility.generate({
-                    minHue: 0, maxHue: 360, minSat: 50, maxSat: 100, minVal: 30, maxVal: 100
-                }, function() {
-                    
+                created: new Date().getTime(), type: 'brain', 
+                color: utility.generate({
+                    minHue: 0, maxHue: 360, minSat: 50, maxSat: 100, minVal: 60, maxVal: 100
                 })
             });
         };
         
         $scope.addCell = function(cell) {
             cell.adding = true;
+            $scope.addingCell = cell;
+            jQuery(zoomHighCanvas).mousedown(placeCell);
         };
         
         var updateInventory = function(snapshot) {
             var itemAdded = snapshot.val();
-            switch(itemAdded.type) {
-                case 'brain':
-                    fireUser.child('new').set('false');
-                    itemAdded.name = utility.capitalize(itemAdded.type) + ' Cell';
-                    break;
-                default:
-                    break;
-            }
-            $timeout(function(){ $scope.inventory[snapshot.name()] = itemAdded; });
+            itemAdded.fireID = snapshot.name();
+            $timeout(function(){
+                switch(itemAdded.type) {
+                    case 'brain':
+                        fireUser.child('new').set('false');
+                        itemAdded.name = utility.capitalize(itemAdded.type) + ' Cell';
+                        $scope.helpText = 'Great! Now click the [+] button, and place it somewhere on the map.';
+                        $scope.newUser = false;
+                        break;
+                    default:
+                        break;
+                } 
+                $scope.inventory[snapshot.name()] = itemAdded; 
+            });
         };
         var removeInventory = function(snapshot) {
-            $timeout(function(){ delete $scope.inventory[snapshot.name()]; });
+            $timeout(function(){
+                switch(snapshot.val().type) {
+                    case 'brain':
+                        $scope.helpText = 'Woo! There\'s your brain cell.\n' + 
+                            'The brain cell is the center of your new life form.\n' + 
+                            'Any cell you place from now on must connect to either your brain, ' + 
+                            'or another cell you placed.';
+                        break;
+                    default:
+                        break;
+                }
+                delete $scope.inventory[snapshot.name()]; 
+            });
         };
         
-        var drawOnMouseDown = function() {
+        var placeCell = function() {
             if($scope.authStatus != 'logged') { return; } // If not authed
             if(event.which == 3) { event.preventDefault(); return; } // If right click pressed
             zoomHighCanvas.style.cursor = 'none'; // Hide cursor
             dimPixel(); // Dim the pixel being drawn on
-            // Write the pixel into Firebase
-            var randomColor = {hex:'222222'};
-            if(event.which == 1) { // If left click pressed
-                for(var i=0; i<3; i++) {
-                    randomColor = utility.generate($scope.keptPixels);
-                    addLastColor(randomColor);
+            var cell = $scope.addingCell;
+            // Add the cell in firebase
+            fireRef.child('cells').child($scope.overPixel[0] + ":" + $scope.overPixel[1]).set(
+                {
+                    owner: userID, type: cell.type, color: cell.color, createdTime: new Date().getTime()
                 }
-            }
-            if($scope.overPixel[0] != '-') {
-                if(keyPressed) {
-                    for(var k=0; k<3; k++) {
-                        randomColor = utility.generate($scope.keptPixels);
-                        addLastColor(randomColor);
-                    }
-                }
-                keyPressed = false;
-            } else {
-                return;
-            }
-            colorToPlace = randomColor;
-            if(($scope.lastPixel[0] != $scope.overPixel[0] || $scope.lastPixel[1] != $scope.overPixel[1])) // If we're on a new pixel
-            {
-                $scope.lastColors = [];
-            }
-            if(event.which != 2) {
-                $scope.keeping = true;
-            }
-            fireRef.child('pixels').child($scope.overPixel[0] + ":" + $scope.overPixel[1]).set(colorToPlace.hex);
-            
-            // WIP tooltip stuff... put in own function
-//            $timeout(function() {
-//                console.log(jQuery('#palCol'+colorToPlace.hex).attr('title','hey you!').tooltip({placement:'bottom',trigger:'manual'}).tooltip('show'));
-//            },100);
-//            $timeout(function() {
-//                jQuery('#palCol'+colorToPlace.hex).tooltip('destroy');
-//            },2000);
+            );
+            fireInventory.child(cell.fireID).remove();
+            $scope.addingCell = {};
+            jQuery(zoomHighCanvas).unbind('mousedown');
         };
 
         var drawZoomCanvas = function() {
@@ -257,7 +254,7 @@ angular.module('Plasma.controllers', [])
         };
         
         // Check for mouse moving to new pixel
-        var onMouseMove = function(e) {
+        var zoomOnMouseMove = function(e) {
             var offset = jQuery(zoomHighCanvas).offset(); // Get pixel location
             var x = Math.floor((e.pageX - offset.left) / zoomPixSize),
                 y = Math.floor((e.pageY - offset.top) / zoomPixSize);
@@ -280,7 +277,7 @@ angular.module('Plasma.controllers', [])
             }
         };
         // When the mouse leaves the canvas
-        var onMouseOut = function() {
+        var zoomOnMouseOut = function() {
             dimPixel();
             $scope.$apply(function() {
                 $scope.overPixel = ['-','-'];
@@ -340,18 +337,11 @@ angular.module('Plasma.controllers', [])
             mainPingContext.clearRect(coords[0] * mainPixSize - 15 + mainPixSize/2, coords[1] * mainPixSize - 15 + mainPixSize/2, 30, 30);
         };
         
-        // When the mouse button is pressed (on the zoomHighCanvas)
-        var overZoomMouseDown = function() {
-            jQuery(zoomCanvas).mousedown(); // Echo the event to the zoom canvas
-        };
-        
-        jQuery(zoomHighCanvas).mousemove(onMouseMove);
-        jQuery(zoomHighCanvas).mouseout(onMouseOut);
+        jQuery(zoomHighCanvas).mousemove(zoomOnMouseMove);
+        jQuery(zoomHighCanvas).mouseout(zoomOnMouseOut);
         jQuery(mainHighCanvas).mousedown(panOnMouseDown);
         jQuery(mainHighCanvas).mousemove(panOnMouseMove);
         jQuery(mainHighCanvas).mouseup(panOnMouseUp);
-    //    jQuery(zoomHighCanvas).mousedown(overZoomMouseDown); // Will send to zoom canvas
-    //    jQuery(zoomCanvas).mousedown(drawOnMouseDown);
         jQuery(window).resize(alignCanvases); // Re-align canvases on window resize
         
         // Add callbacks that are fired any time the pixel data changes and adjusts the canvas appropriately
@@ -359,8 +349,8 @@ angular.module('Plasma.controllers', [])
         var drawPixel = function(snapshot) {
             localPixels[snapshot.name()] = snapshot.val();
             var coords = snapshot.name().split(":");
-            drawZoomPixel(snapshot.val(),coords[0],coords[1]);
-            mainContext.fillStyle = "#" + snapshot.val();
+            drawZoomPixel(snapshot.val().color.hex,coords[0],coords[1]);
+            mainContext.fillStyle = "#" + snapshot.val().color.hex;
             mainContext.fillRect(parseInt(coords[0]) * mainPixSize, parseInt(coords[1]) * mainPixSize, mainPixSize, mainPixSize);
         };
         // Erase a pixel
@@ -373,9 +363,9 @@ angular.module('Plasma.controllers', [])
             mainContext.fillRect(parseInt(coords[0]) * mainPixSize, parseInt(coords[1]) * mainPixSize, mainPixSize, mainPixSize);
         };
         // Firebase listeners
-        fireRef.child('pixels').on('child_added', drawPixel);
-        fireRef.child('pixels').on('child_changed', drawPixel);
-        fireRef.child('pixels').on('child_removed', clearPixel);
+        fireRef.child('cells').on('child_added', drawPixel);
+        fireRef.child('cells').on('child_changed', drawPixel);
+        fireRef.child('cells').on('child_removed', clearPixel);
         fireRef.child('meta').child('pings').on('child_added', drawPing);
         fireRef.child('meta').child('pings').on('child_removed', hidePing);
         

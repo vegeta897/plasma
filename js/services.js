@@ -98,11 +98,11 @@ angular.module('Plasma.services', [])
         };
         return {
             generate: function(/* palette (array) OR maxMins (object has 'maxSat') */) {
-                var palette = jQuery.isArray(arguments[0]) ? arguments[0] : undefined;
+            //    var palette = jQuery.isArray(arguments[0]) ? arguments[0] : undefined;
                 var maxMins = arguments[0].hasOwnProperty('maxSat') ? arguments[0] : undefined;
-                var averages = getAverages(palette);
+            //    var averages = getAverages(palette);
                 var hsv = {};
-                if(averages) { hsv = applyAverages(averages); } else
+            //    if(averages) { hsv = applyAverages(averages); } else
                 if(maxMins) {
                     var hueRange = maxMins.maxHue - maxMins.minHue;
                     var satRange = maxMins.maxSat - maxMins.minSat;
@@ -111,7 +111,7 @@ angular.module('Plasma.services', [])
                         hue: Math.floor(Math.random()*hueRange + maxMins.minHue),
                         sat: Math.round(Math.random()*satRange + maxMins.minSat)/100,
                         val: Math.round(Math.random()*valRange + maxMins.minVal)/100
-                    }
+                    };
                 } else {
                     hsv = {
                         hue: Math.floor(Math.random()*360),

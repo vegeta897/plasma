@@ -12,7 +12,7 @@
                 <div class="form-group">
                     <input ng-model="loginPassword" ng-disabled="authStatus=='logging'" id="inputLoginPass" type="password" placeholder="password" class="form-control">
                 </div>
-                <button ng-disabled="authStatus=='logging'" id="loginSubmit" type="submit" class="btn btn-success">Log In</button>
+                <button ng-disabled="authStatus=='logging'" id="loginSubmit" type="submit" class="btn btn-success">Log In / Create</button>
             </form>
         </div><!--/.navbar-collapse -->
     </div>
@@ -25,7 +25,7 @@
         <canvas id="mainPingCanvas" width="600" height="600"></canvas> <!-- Ping canvas -->
         <canvas id="mainHighlightCanvas" width="600" height="600"></canvas> <!-- Main highlight canvas -->
     </div>
-    <div class="canvas-container"> <!-- Right side canvases -->
+    <div class="canvas-container text-right"> <!-- Right side canvases -->
         <canvas id="zoomCanvas" width="600" height="600"></canvas> <!-- Main canvas -->
         <canvas id="zoomHighlightCanvas" width="600" height="600"></canvas> <!-- Zoom highlight canvas -->
     </div>
@@ -40,10 +40,8 @@
     <div class="row">
         <div class="col-xs-4">
             <h2>Welcome to <span class="plasma-color">Plasma</span>!</h2>
-            <div ng-show="newUser">
-                <p>To begin, add a brain cell to your inventory.</p>
-                <button class="btn btn-success" ng-click="addBrain()">Add Brain Cell</button>
-            </div>
+            <p ng-repeat="paragraph in helpText|nlToArray">{{ paragraph }}</p>
+            <button ng-show="newUser" class="btn btn-success" ng-click="addBrain()">Add Brain Cell</button>
         </div>
         <div id="inventory" class="col-xs-8">
             <h2>Inventory</h2>

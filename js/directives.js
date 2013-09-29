@@ -40,4 +40,9 @@ angular.module('Plasma.directives', [])
             }
         };
     })
+    .filter('nlToArray', function() {
+        return function(text) {
+            return text.split('\n');
+        };
+    });
 ;

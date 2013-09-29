@@ -52,7 +52,7 @@
                     <button type="button" ng-disabled="item.adding" ng-click="addCell(item)" 
                             class="btn btn-xs btn-default"><span class="glyphicon glyphicon-plus"></span></button>
                     <span ng-init="style={background: '#'+item.color.hex}" ng-style="style" class="item-color"></span>
-                    {{ item.name | itemDisplay }}
+                    {{ item.type | itemDisplay }}
                 </li>
             </ul>
         </div>

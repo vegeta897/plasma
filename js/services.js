@@ -124,7 +124,7 @@ angular.module('Plasma.services', [])
                             hsv = {
                                 hue: brainColor.hsv.hue + Math.floor(Math.random()*26 - 13),
                                 sat: Math.round(Math.random()*30 + 15)/100,
-                                val: Math.round(Math.random()*50 + 15)/100
+                                val: Math.round(Math.random()*10 + 40)/100
                             };
                             break;
                     }

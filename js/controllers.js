@@ -155,7 +155,7 @@ angular.module('Plasma.controllers', [])
         $scope.addBrain = function() {
             tutorial('next');
             $scope.brainColor = utility.generate({ minHue: 0, maxHue: 360, 
-                minSat: 50, maxSat: 100, minVal: 60, maxVal: 100});
+                minSat: 50, maxSat: 100, minVal: 65, maxVal: 80});
             fireUser.child('brainColor').set($scope.brainColor);
             fireInventory.push({
                 type: 'brain', color: $scope.brainColor,
@@ -240,7 +240,7 @@ angular.module('Plasma.controllers', [])
                             if(localPixels[neighbors[i]].type == 'brain') { brainFound = true; break; }
                         }
                     }
-                    return brainFound;
+                    return brainFound && !localPixels.hasOwnProperty(loc.join(':'));
                 break;
                 default:
                     return false;

@@ -31,12 +31,12 @@ angular.module('Plasma.canvas', [])
             },
             fillCanvas: function(context,color) {
                 var method = color == 'erase' ? 'clearRect' : 'fillRect';
-                context.fillStyle = color.charAt(0) == 'r' ? color : '#' + color;
+                if(color != 'erase') { context.fillStyle = color.charAt(0) == 'r' ? color : '#' + color; }
                 context[method](0,0,600,600);
             },
             fillMainArea: function(context,color,coords,size) {
                 var method = color == 'erase' ? 'clearRect' : 'fillRect';
-                context.fillStyle = color.charAt(0) == 'r' ? color : '#' + color;
+                if(color != 'erase') { context.fillStyle = color.charAt(0) == 'r' ? color : '#' + color; }
                 context[method](coords[0]*mainPixSize,coords[1]*mainPixSize,size[0]*mainPixSize,size[1]*mainPixSize);
             },
             drawPing: function(context,coords) {

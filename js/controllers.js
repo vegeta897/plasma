@@ -293,9 +293,9 @@ angular.module('Plasma.controllers', [])
         };
 
         var selectCell = function(event) {
+            if(event.which == 3) {  event.preventDefault(); return; } // If right click pressed
+            if(event.which == 2) {  startDragPanning(event); return; } // If middle click pressed
             if($scope.authStatus != 'logged') { return; } // If not authed
-            if(event.which == 3) { event.preventDefault(); return; } // If right click pressed
-            if(event.which == 2) { startDragPanning(event); return; } // If middle click pressed
             $timeout(function() {
                 if(localPixels.hasOwnProperty($scope.overPixel[0] + ":" + $scope.overPixel[1])) {
                     $scope.selectedCell = localPixels[$scope.overPixel[0] + ":" + $scope.overPixel[1]];
@@ -309,7 +309,8 @@ angular.module('Plasma.controllers', [])
         
         var placeCell = function(event) {
             if($scope.authStatus != 'logged') { return; } // If not authed
-            if(event.which == 3) { event.preventDefault(); $scope.cancelAddCell(); return; } // If right click pressed
+            if(event.which == 3) { $scope.cancelAddCell(); event.preventDefault(); return; } // If right click pressed
+            if(event.which == 2) { startDragPanning(event); return; } // If middle click pressed
             dimPixel(); // Dim the pixel being drawn on
             var cell = $scope.addingCell;
             if(!validLocation(cell.type)) { return; }

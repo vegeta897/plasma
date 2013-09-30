@@ -1,7 +1,7 @@
 /* Services */
 
-angular.module('Plasma.services', [])
-    .factory('utility', function() {
+angular.module('Plasma.colors', [])
+    .factory('colorUtility', function() {
         var hsvToRGB = function(hsv) {
             var h = hsv.hue, s = hsv.sat, v = hsv.val, rgb, i, data = [];
             if (s === 0) { rgb = [v,v,v]; } 

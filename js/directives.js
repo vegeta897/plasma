@@ -43,7 +43,7 @@ angular.module('Plasma.directives', [])
     .directive('zoomSlider', function() {
         return {
             restrict: 'C',
-            link: function(scope, element, attrs) {
+            link: function(scope, element) {
                 var changeZoom = function() { 
                     if(element.val()){ scope.changeZoom(parseInt(element.val())); } 
                 };

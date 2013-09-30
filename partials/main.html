@@ -29,11 +29,15 @@
         <canvas id="zoomCanvas" width="600" height="600"></canvas> <!-- Main canvas -->
         <canvas id="zoomHighlightCanvas" width="600" height="600"></canvas> <!-- Zoom highlight canvas -->
     </div>
-    <div class="span1 pull-left coords">
+    <div class="col-xs-1 pull-left hard-left coords">
         {{ zoomPosition[0] }} , {{ zoomPosition[1] }}
     </div>
-    <div class="span1 text-right pull-right coords">
+    <div class="col-xs-1 text-right hard-right pull-right coords">
         {{ overPixel[0] }} , {{ overPixel[1] }}
+    </div>
+    <div class="col-xs-2 text-right hard-right pull-right coords">
+        <input type="text" class="zoom-slider" value="" data-slider-handle="square" data-slider-min="0"
+               data-slider-max="9" data-slider-selection="none" data-slider-value="3" data-slider-tooltip="hide">
     </div>
 </div>
 <div id="uiContainer" ng-show="userInit" class="container">
@@ -79,6 +83,7 @@
             <table class="table">
                 <tr><td>Cells</td><td><strong>{{ userCells }}</strong></td></tr>
                 <tr><td>Heartbeats</td><td><strong>{{ heartbeats }}</strong></td></tr>
+                <tr><td>Efficiency</td><td><strong>{{ userCells/heartbeats | percent }}</strong></td></tr>
             </table>
         </div>
     </div>

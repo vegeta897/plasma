@@ -8,7 +8,8 @@ angular.module('Plasma.controllers', [])
         $scope.authStatus = '';
         $scope.helpText = '';
         $scope.userCells = 0;
-        var mainPixSize = 2, zoomPixSize = 10, zoomSize = [60,60], lastZoomPosition = [0,0], localPixels = {};
+        $scope.zoomLevel = 3;
+        var mainPixSize = 2, zoomPixSize = 12, zoomSize = [50,50], lastZoomPosition = [0,0], localPixels = {};
         var panMouseDown = 0, zoomMouseDown = 0, keyPressed = false, keyUpped = true, pinging = false;
         var userID, fireUser, fireInventory, tutorialStep = 0;
         
@@ -80,7 +81,7 @@ angular.module('Plasma.controllers', [])
             fireUser.once('value', function(snapshot) {
                 $timeout(function() { 
                     $scope.heartbeats = snapshot.val().heartbeats;
-                    $scope.brainColor = snapshot.val().brainColor;
+                    $scope.brain = snapshot.val().brain;
                     $scope.newUser = (snapshot.val()['new'] == 'true');
                     $scope.userInit = true;
                     if(!$scope.newUser) { return; }
@@ -151,13 +152,36 @@ angular.module('Plasma.controllers', [])
             fireUser.set({heartbeats: 0, new: 'true'});
         };
         
+        $scope.changeZoom = function(val) {
+            var oldZoom = zoomSize;
+            var zoomLevels = [5,8,10,12,15,20,30,40,50,60];
+            $scope.zoomLevel = val;
+            console.log($scope.zoomLevel,3,'3');
+            zoomPixSize = zoomLevels[$scope.zoomLevel];
+            zoomSize = [600/zoomPixSize,600/zoomPixSize];
+            var offset = [oldZoom[0]-zoomSize[0],oldZoom[1]-zoomSize[1]];
+            lastZoomPosition = [Math.floor($scope.zoomPosition[0]+offset[0]/2), // Keep centered
+                Math.floor($scope.zoomPosition[1]+offset[1]/2)];
+            var x = lastZoomPosition[0], y = lastZoomPosition[1]; // Fix zoom area going off edge
+            if(x < 0) { x = 0; } if(y < 0) { y = 0; }
+            if(x > 300 - zoomSize[0]) { x = 300 - zoomSize[0]; }
+            if(y > 300 - zoomSize[1]) { y = 300 - zoomSize[1]; }
+            $scope.zoomPosition = lastZoomPosition = [x,y];
+            canvasUtility.fillCanvas(mainHighContext,'erase'); // Draw new zoom highlight area
+            canvasUtility.fillMainArea(mainHighContext,'rgba(255, 255, 255, 0.03)',
+                lastZoomPosition,zoomSize);
+            drawZoomCanvas();
+            dimPixel();
+        };
+        
         $scope.addBrain = function() {
             tutorial('next');
-            $scope.brainColor = colorUtility.generate({ minHue: 0, maxHue: 360, 
+            $scope.brain = {};
+            $scope.brain.color = colorUtility.generate({ minHue: 0, maxHue: 360, 
                 minSat: 50, maxSat: 100, minVal: 65, maxVal: 80});
-            fireUser.child('brainColor').set($scope.brainColor);
+            fireUser.child('brain').set(angular.copy($scope.brain));
             fireInventory.push({
-                type: 'brain', color: $scope.brainColor,
+                type: 'brain', color: $scope.brain.color,
                 contents: [ 'somatic', 'somatic', 'somatic', 'somatic' ]
             });
         };
@@ -169,10 +193,19 @@ angular.module('Plasma.controllers', [])
             jQuery(zoomHighCanvas).mousedown(placeCell);
         };
         
+        $scope.cancelAddCell = function() {
+            $timeout(function() {
+                $scope.addingCell.adding = false;
+                $scope.addingCell = {};
+                jQuery(zoomHighCanvas).unbind('mousedown');
+                jQuery(zoomHighCanvas).mousedown(selectCell);
+            });
+        };
+        
         $scope.harvestItem = function(id,item) {
             fireInventory.push({
                 type: item, contents: [],
-                color: colorUtility.generate(item, $scope.brainColor)
+                color: colorUtility.generate(item, $scope.brain.color)
             });
             var newContents = $scope.selectedCell.contents;
             newContents.splice(id,1);
@@ -184,6 +217,8 @@ angular.module('Plasma.controllers', [])
             $timeout(function(){
                 $scope.heartbeats += 1;
                 fireUser.child('heartbeats').set($scope.heartbeats);
+                var updatedCells = {};
+                fireRef.child('cells').update(updatedCells); // Will update only updated cells
             });
         };
         
@@ -263,7 +298,7 @@ angular.module('Plasma.controllers', [])
         
         var placeCell = function(event) {
             if($scope.authStatus != 'logged') { return; } // If not authed
-            if(event.which == 3) { event.preventDefault(); return; } // If right click pressed
+            if(event.which == 3) { event.preventDefault(); $scope.cancelAddCell(); return; } // If right click pressed
             dimPixel(); // Dim the pixel being drawn on
             var cell = $scope.addingCell;
             if(!validLocation(cell.type)) { return; }
@@ -275,6 +310,10 @@ angular.module('Plasma.controllers', [])
                 }
             );
             fireInventory.child(cell.fireID).remove();
+            if(cell.type == 'brain') { 
+                $scope.brain.grid = $scope.overPixel.join(':'); 
+                fireUser.child('brain').update($scope.brain);
+            }
             $scope.addingCell = {};
             jQuery(zoomHighCanvas).unbind('mousedown');
             jQuery(zoomHighCanvas).mousedown(selectCell);
@@ -287,20 +326,20 @@ angular.module('Plasma.controllers', [])
                 if(localPixels.hasOwnProperty(pixKey)) {
                     var coords = pixKey.split(":");
                     canvasUtility.drawZoomPixel(zoomContext,localPixels[pixKey].color.hex,
-                        coords,$scope.zoomPosition);
+                        coords,$scope.zoomPosition,zoomPixSize);
                 }
             }
         };
         
         var changeZoomPosition = function(x,y) {
-            canvasUtility.fillMainArea(mainHighContext,'erase',lastZoomPosition,[60,60]);
+            canvasUtility.fillMainArea(mainHighContext,'erase',lastZoomPosition,zoomSize);
             $timeout(function(){});
             $scope.zoomPosition = [x,y];
             lastZoomPosition = [x,y];
             localStorageService.set('zoomPosition',$scope.zoomPosition);
             drawZoomCanvas();
             canvasUtility.fillMainArea(mainHighContext,'rgba(255, 255, 255, 0.03)',
-                [x,y],[60,60]); // Draw new zoom rect
+                [x,y],zoomSize); // Draw new zoom rect
         };
         changeZoomPosition($scope.zoomPosition[0],$scope.zoomPosition[1]);
         
@@ -310,6 +349,10 @@ angular.module('Plasma.controllers', [])
             var offset = jQuery(mainCanvas).offset(); // Get pixel location
             var x = Math.floor((e.pageX - offset.left) / mainPixSize) - zoomSize[0]/2,
                 y = Math.floor((e.pageY - offset.top) / mainPixSize) - zoomSize[1]/2;
+            if(x < 0) { x = 0; } if(y < 0) { y = 0; }
+            if(x > 300 - zoomSize[0]) { x = 300 - zoomSize[0]; }
+            if(y > 300 - zoomSize[1]) { y = 300 - zoomSize[1]; }
+            if(lastZoomPosition[0] == x && lastZoomPosition[1] == y) { return; }
             changeZoomPosition(x,y);
             dimPixel();
         };
@@ -342,10 +385,10 @@ angular.module('Plasma.controllers', [])
                 dimPixel(); // Dim the previous pixel
                 $scope.$apply(function() {
                     // Update the pixel location we're now over, offsetting by zoom window position
-                    $scope.overPixel = [x+$scope.zoomPosition[0],y+$scope.zoomPosition[1]]; 
+                    $scope.overPixel = [x+$scope.zoomPosition[0],y+$scope.zoomPosition[1]];
+                    canvasUtility.drawZoomPixel(zoomHighContext, 'rgba(255, 255, 255, 0.1)',
+                        $scope.overPixel, $scope.zoomPosition, zoomPixSize); // Highlight pixel underneath cursor
                 });
-                canvasUtility.drawZoomPixel(zoomHighContext, 'rgba(255, 255, 255, 0.15)',
-                    $scope.overPixel, $scope.zoomPosition); // Highlight pixel underneath cursor
             }
         };
         // Draw selection box around selected cell
@@ -353,7 +396,7 @@ angular.module('Plasma.controllers', [])
             if(!$scope.selectedCell) { return; }
             var coords = $scope.selectedCell.grid.split(':');
             coords = [coords[0]-$scope.zoomPosition[0],coords[1]-$scope.zoomPosition[1]];
-            canvasUtility.drawSelect(zoomHighContext,coords);
+            canvasUtility.drawSelect(zoomHighContext,coords,zoomPixSize);
         };
         // Dim the pixel after leaving it
         var dimPixel = function() {
@@ -399,7 +442,7 @@ angular.module('Plasma.controllers', [])
             if(snapshot.val().owner == userID && !localPixels.hasOwnProperty(snapshot.name())) { $scope.userCells++; }
             localPixels[snapshot.name()] = snapshot.val();
             var coords = snapshot.name().split(":");
-            canvasUtility.drawZoomPixel(zoomContext,snapshot.val().color.hex,coords,$scope.zoomPosition);
+            canvasUtility.drawZoomPixel(zoomContext,snapshot.val().color.hex,coords,$scope.zoomPosition,zoomPixSize);
             canvasUtility.fillMainArea(mainContext,snapshot.val().color.hex,coords,[1,1]);
         };
         // When a pixel is removed
@@ -408,7 +451,7 @@ angular.module('Plasma.controllers', [])
             delete localPixels[snapshot.name()];
             var coords = snapshot.name().split(":");
             $timeout(function(){ alignCanvases(); }, 200); // Realign canvases
-            canvasUtility.drawZoomPixel(zoomContext,'222222',coords,$scope.zoomPosition);
+            canvasUtility.drawZoomPixel(zoomContext,'222222',coords,$scope.zoomPosition,zoomPixSize);
             canvasUtility.fillMainArea(mainContext,'erase',coords,[1,1]);
         };
         // Firebase listeners

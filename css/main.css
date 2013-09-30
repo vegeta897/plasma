@@ -1,6 +1,10 @@
 html { height: 100%; padding-top: 55px; }
 body { height: 100%; }
 
+*:focus {
+    outline: 0 !important;
+}
+
 .hidden { display: none !important; }
 
 .navbar { height: 55px; border-color: #111; }
@@ -30,6 +34,8 @@ p.navbar-right { margin: 0 -15px 0 0; line-height: 53px; }
 
 canvas { position: relative; }
 #mainPingCanvas, #mainHighlightCanvas, #zoomHighlightCanvas { position: absolute; top: -5000px; }
+
+.hard-left { padding-left: 0; } .hard-right { padding-right: 0; }
 
 #uiContainer {  }
 

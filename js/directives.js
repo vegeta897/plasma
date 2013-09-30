@@ -40,6 +40,17 @@ angular.module('Plasma.directives', [])
             }
         };
     })
+    .directive('zoomSlider', function() {
+        return {
+            restrict: 'C',
+            link: function(scope, element, attrs) {
+                var changeZoom = function() { 
+                    if(element.val()){ scope.changeZoom(parseInt(element.val())); } 
+                };
+                element.slider().slider('setValue',scope.zoomLevel).on('slide', changeZoom);
+            }
+        };
+    })
     .filter('nlToArray', function() {
         return function(text) {
             if(!text) { return text; }
@@ -59,6 +70,12 @@ angular.module('Plasma.directives', [])
         return function(input) {
             if(!input) { return input; }
             return input.split(':').join(' , ');
+        }
+    })
+    .filter('percent', function() {
+        return function(input) {
+            if(!input) { return '-'; }
+            return Math.round(input*100)+'%';
         }
     })
 ;

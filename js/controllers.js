@@ -150,7 +150,7 @@ angular.module('Plasma.controllers', [])
             $timeout(function(){});
             var oldZoom = zoomSize;
             var zoomLevels = [5,8,10,12,15,20,30,40,50,60];
-            $scope.zoomLevel = val;
+            $scope.zoomLevel = parseInt(val);
             localStorageService.set('zoomLevel',$scope.zoomLevel);
             zoomPixSize = zoomLevels[$scope.zoomLevel];
             zoomSize = [600/zoomPixSize,600/zoomPixSize];
@@ -359,7 +359,7 @@ angular.module('Plasma.controllers', [])
             jQuery(zoomHighCanvas).mouseup(stopDragPanning);
         };
         var dragPan = function(e) {
-            if(!dragPanning || e.which == 0) { return; }
+            if(!dragPanning || e.which == 0) { stopDragPanning(); return; }
             var offset = jQuery(zoomCanvas).offset(); // Get pixel location
             var x = Math.floor($scope.zoomPosition[0] + (e.pageX - offset.left) / zoomPixSize),
                 y = Math.floor($scope.zoomPosition[1] + (e.pageY - offset.top) / zoomPixSize);
@@ -373,9 +373,8 @@ angular.module('Plasma.controllers', [])
             changeZoomPosition(newPosition[0],newPosition[1]);
             dimPixel();
         };
-        var stopDragPanning = function(e) {
+        var stopDragPanning = function() {
             dragPanning = false;
-
             jQuery(zoomHighCanvas).mousemove(zoomOnMouseMove);
             jQuery(zoomHighCanvas).mousedown(selectCell);
             jQuery(zoomHighCanvas).unbind('mouseup');
@@ -457,6 +456,17 @@ angular.module('Plasma.controllers', [])
                 $scope.overPixel = ['-','-'];
             });
         };
+        // When scrolling on the zoom canvas
+        var zoomScroll = function(event, delta, deltaX, deltaY){
+            if(deltaY < 0 && $scope.zoomLevel > 0) {
+                $scope.changeZoom($scope.zoomLevel - 1);
+            } else if(deltaY > 0 && $scope.zoomLevel < 9) {
+                $scope.changeZoom($scope.zoomLevel + 1);
+            }
+            $('.zoom-slider').slider('setValue',$scope.zoomLevel);
+            event.preventDefault();
+            return false;
+        };
         // Ping a pixel
         var ping = function() {
             if(pinging || $scope.overPixel[0] == '-') { return; }
@@ -475,6 +485,7 @@ angular.module('Plasma.controllers', [])
         jQuery(zoomHighCanvas).mousemove(zoomOnMouseMove);
         jQuery(zoomHighCanvas).mouseleave(zoomOnMouseOut);
         jQuery(zoomHighCanvas).mousedown(selectCell);
+        jQuery(zoomHighCanvas).mousewheel(zoomScroll);
         jQuery(mainHighCanvas).mousemove(panOnMouseMove);
         jQuery(mainHighCanvas).mousedown(panOnMouseDown);
         jQuery(mainHighCanvas).mouseup(panOnMouseUp);

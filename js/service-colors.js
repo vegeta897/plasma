@@ -1,4 +1,4 @@
-/* Services */
+/* Color gen service */
 
 angular.module('Plasma.colors', [])
     .factory('colorUtility', function() {

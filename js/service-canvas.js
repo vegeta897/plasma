@@ -1,4 +1,4 @@
-/* Services */
+/* Canvas drawing service */
 
 angular.module('Plasma.canvas', [])
     .factory('canvasUtility', function() {

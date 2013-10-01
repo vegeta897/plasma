@@ -1,7 +1,7 @@
 /* Controllers */
 
 angular.module('Plasma.controllers', [])
-	.controller('Main', ['$scope', '$timeout', '$filter', 'localStorageService', 'colorUtility', 'canvasUtility', function($scope, $timeout, $filter, localStorageService, colorUtility, canvasUtility) {
+	.controller('Main', ['$scope', '$timeout', '$filter', 'localStorageService', 'colorUtility', 'canvasUtility', 'gameUtility', function($scope, $timeout, $filter, localStorageService, colorUtility, canvasUtility, gameUtility) {
         
         $scope.zoomPosition = [120,120]; // Tracking zoom window position
         $scope.overPixel = ['-','-']; // Tracking your coordinates'
@@ -220,7 +220,7 @@ angular.module('Plasma.controllers', [])
             $timeout(function(){
                 $scope.heartbeats += 1;
                 fireUser.child('heartbeats').set($scope.heartbeats);
-                var updatedCells = {};
+                var updatedCells = gameUtility.heartbeat(localPixels, $scope.user.id, $scope.heartbeats);
                 fireRef.child('cells').update(updatedCells); // Will update only updated cells
             });
         };
@@ -241,6 +241,7 @@ angular.module('Plasma.controllers', [])
                 $scope.inventory[snapshot.name()] = itemAdded; 
             });
         };
+        
         var removeInventory = function(snapshot) {
             $timeout(function(){
                 switch(snapshot.val().type) {
@@ -260,29 +261,6 @@ angular.module('Plasma.controllers', [])
                     if(tutorialStep == 4) { tutorial('next'); }
                 }
             });
-        };
-        
-        var validLocation = function(cellType) {
-            var loc = $scope.overPixel;
-            switch(cellType) {
-                case 'brain':
-                    return !localPixels.hasOwnProperty(loc.join(':'));
-                break;
-                case 'somatic':
-                    var neighbors = [[loc[0]-1,loc[1]].join(':'), [loc[0]+1,loc[1]].join(':'),
-                        [loc[0],loc[1]-1].join(':'), [loc[0],loc[1]+1].join(':')];
-                    var brainFound = false;
-                    for (var i = 0; i < neighbors.length; i++) {
-                        if(localPixels.hasOwnProperty(neighbors[i])) {
-                            if(localPixels[neighbors[i]].type == 'brain') { brainFound = true; break; }
-                        }
-                    }
-                    return brainFound && !localPixels.hasOwnProperty(loc.join(':'));
-                break;
-                default:
-                    return false;
-                break;
-            }
         };
 
         var selectCell = function(event) {
@@ -308,12 +286,12 @@ angular.module('Plasma.controllers', [])
             if(event.which == 2) { startDragPanning(event); return; } // If middle click pressed
             dimPixel(); // Dim the pixel being drawn on
             var cell = $scope.addingCell;
-            if(!validLocation(cell.type)) { return; }
+            if(!gameUtility.validLocation(localPixels, cell.type, $scope.overPixel)) { return; }
             // Add the cell in firebase
             fireRef.child('cells').child($scope.overPixel[0] + ":" + $scope.overPixel[1]).set(
                 {
                     owner: userID, type: cell.type, color: cell.color, created: $scope.heartbeats,
-                    contents: cell.contents ? cell.contents : []
+                    contents: cell.contents ? cell.contents : [], life: 100
                 }
             );
             fireInventory.child(cell.fireID).remove();
@@ -353,11 +331,13 @@ angular.module('Plasma.controllers', [])
         var startDragPanning = function(e) {
             dragPanning = true;
             panOrigin = $scope.overPixel;
+            dimPixel();
             jQuery(zoomHighCanvas).unbind('mousemove');
             jQuery(zoomHighCanvas).mousemove(dragPan);
             jQuery(zoomHighCanvas).unbind('mousedown');
             jQuery(zoomHighCanvas).mouseup(stopDragPanning);
         };
+        
         var dragPan = function(e) {
             if(!dragPanning || e.which == 0) { stopDragPanning(); return; }
             var offset = jQuery(zoomCanvas).offset(); // Get pixel location
@@ -373,6 +353,7 @@ angular.module('Plasma.controllers', [])
             changeZoomPosition(newPosition[0],newPosition[1]);
             dimPixel();
         };
+        
         var stopDragPanning = function() {
             dragPanning = false;
             jQuery(zoomHighCanvas).mousemove(zoomOnMouseMove);
@@ -411,9 +392,7 @@ angular.module('Plasma.controllers', [])
             dimPixel();
         };
 
-        var panOnMouseUp = function(e) {
-            panMouseDown = false;
-        };
+        var panOnMouseUp = function(e) { panMouseDown = false; };
         
         // Check for mouse moving to new pixel
         var zoomOnMouseMove = function(e) {
@@ -493,8 +472,14 @@ angular.module('Plasma.controllers', [])
         
         // When a cell is added/changed
         var drawPixel = function(snapshot) {
-            if(snapshot.val().owner == userID && !localPixels.hasOwnProperty(snapshot.name())) { $scope.userCells++; }
+            if(snapshot.val().owner == userID && !localPixels.hasOwnProperty(snapshot.name())) { 
+                $scope.userCells++; }
             localPixels[snapshot.name()] = snapshot.val();
+            if($scope.selectedCell && $scope.selectedCell.grid == snapshot.name()) { // If updated selected cell
+                $scope.selectedCell = snapshot.val();
+                $scope.selectedCell.grid = snapshot.name(); // Add grid and owner nickname properties
+                $scope.selectedCell.ownerNick = localUsers[$scope.selectedCell.owner].nick;
+            } 
             var coords = snapshot.name().split(":");
             canvasUtility.drawZoomPixel(zoomContext,snapshot.val().color.hex,coords,$scope.zoomPosition,zoomPixSize);
             canvasUtility.fillMainArea(mainContext,snapshot.val().color.hex,coords,[1,1]);
@@ -503,7 +488,9 @@ angular.module('Plasma.controllers', [])
         var clearPixel = function(snapshot) {
             if(snapshot.val().owner == userID) { $scope.userCells--; }
             delete localPixels[snapshot.name()];
-            if($scope.selectedCell.grid == snapshot.name()) { $scope.selectedCell = null; dimPixel(); }
+            if($scope.selectedCell && $scope.selectedCell.grid == snapshot.name()) { 
+                $scope.selectedCell = null; dimPixel(); 
+            }
             var coords = snapshot.name().split(":");
             $timeout(function(){ alignCanvases(); }, 200); // Realign canvases
             canvasUtility.drawZoomPixel(zoomContext,'222222',coords,$scope.zoomPosition,zoomPixSize);

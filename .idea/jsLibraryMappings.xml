@@ -6,6 +6,7 @@
     <file url="file://$PROJECT_DIR$/js/main.js" libraries="{angular, jquery-1.10.1}" />
     <file url="file://$PROJECT_DIR$/js/service-canvas.js" libraries="{angular, jquery-1.10.1}" />
     <file url="file://$PROJECT_DIR$/js/service-colors.js" libraries="{angular, jquery-1.10.1}" />
+    <file url="file://$PROJECT_DIR$/js/service-game.js" libraries="{angular}" />
     <file url="file://$PROJECT_DIR$/js/vendor/jquery.mousewheel.js" libraries="{jquery-1.10.1}" />
   </component>
 </project>

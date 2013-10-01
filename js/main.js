@@ -1,4 +1,4 @@
-angular.module('Plasma', ['Plasma.controllers', 'Plasma.colors', 'Plasma.canvas', 'Plasma.directives', 'LocalStorageModule'])
+angular.module('Plasma', ['Plasma.controllers', 'Plasma.colors', 'Plasma.canvas', 'Plasma.game', 'Plasma.directives', 'LocalStorageModule'])
 	.config(['$routeProvider', function($routeProvider) { // Set up URL page routing
 		$routeProvider.
 			when('/', {templateUrl: 'partials/main.html', controller: 'Main'}). // Main page

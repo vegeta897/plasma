@@ -67,6 +67,16 @@
                 {{ selectedCell.type | itemDisplay }}&emsp;
                 <span class="text-muted">({{ selectedCell.grid | grid }})</span>
             </p>
+            <div class="row">
+                <div class="col-xs-4 hard-right">
+                    <p><span class="text-muted">Health</span>&emsp;{{ selectedCell.life }}</p>
+                </div>
+                <div class="col-xs-8">
+                    <div class="progress">
+                        <div class="progress-bar" ng-style="{width: selectedCell.life+'%'}"></div>
+                    </div>
+                </div>
+            </div>
             <div ng-show="selectedCell.contents.length > 0" class="well">
                 <h3>Contents</h3>
                 <ul class="list-unstyled">

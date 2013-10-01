@@ -433,8 +433,13 @@ angular.module('Plasma.controllers', [])
                 $scope.$apply(function() {
                     // Update the pixel location we're now over, offsetting by zoom window position
                     $scope.overPixel = [x+$scope.zoomPosition[0],y+$scope.zoomPosition[1]];
-                    canvasUtility.drawZoomPixel(zoomHighContext, 'rgba(255, 255, 255, 0.1)',
-                        $scope.overPixel, $scope.zoomPosition, zoomPixSize); // Highlight pixel underneath cursor
+                    var drawColor = 'rgba(255, 255, 255, 0.1)';
+                    if($scope.addingCell.hasOwnProperty('color')) {
+                        var rgb = colorUtility.hexToRGB($scope.addingCell.color.hex);
+                        drawColor = 'rgba(' + rgb.r + (', ') + rgb.g + (', ') + rgb.b + ', 0.5)';
+                    }
+                    canvasUtility.drawZoomPixel(zoomHighContext, drawColor, // Highlight pixel underneath cursor
+                        $scope.overPixel, $scope.zoomPosition, zoomPixSize); 
                 });
             }
         };
@@ -469,12 +474,8 @@ angular.module('Plasma.controllers', [])
             fireRef.child('meta').child('pings').child(pinging[0] + ":" + pinging[1]).set(null);
             pinging = false;
         };
-        var drawPing = function(snapshot) {
-            canvasUtility.drawPing(mainPingContext,snapshot.name().split(":"));
-        };
-        var hidePing = function(snapshot) {
-            canvasUtility.clearPing(mainPingContext,snapshot.name().split(":"));
-        };
+        var drawPing = function(snapshot) { canvasUtility.drawPing(mainPingContext,snapshot.name().split(":")); };
+        var hidePing = function(snapshot) { canvasUtility.clearPing(mainPingContext,snapshot.name().split(":")); };
         
         jQuery(zoomHighCanvas).mousemove(zoomOnMouseMove);
         jQuery(zoomHighCanvas).mouseleave(zoomOnMouseOut);

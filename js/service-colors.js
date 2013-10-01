@@ -123,7 +123,7 @@ angular.module('Plasma.colors', [])
                         case 'somatic':
                             hsv = {
                                 hue: brainColor.hsv.hue + Math.floor(Math.random()*26 - 13),
-                                sat: Math.round(Math.random()*30 + 15)/100,
+                                sat: Math.round(Math.random()*25 + 20)/100,
                                 val: Math.round(Math.random()*10 + 40)/100
                             };
                             break;

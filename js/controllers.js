@@ -9,9 +9,10 @@ angular.module('Plasma.controllers', [])
         $scope.helpText = '';
         $scope.userCells = 0;
         $scope.zoomLevel = 3;
-        var mainPixSize = 2, zoomPixSize = 12, zoomSize = [50,50], lastZoomPosition = [0,0], localPixels = {};
-        var panMouseDown = 0, zoomMouseDown = 0, keyPressed = false, keyUpped = true, pinging = false;
-        var userID, fireUser, fireInventory, tutorialStep = 0, viewCenter, dragPanning = false, panOrigin;
+        $scope.addingCell = {};
+        var mainPixSize = 2, zoomPixSize = 12, zoomSize = [50,50], lastZoomPosition = [0,0], viewCenter, panOrigin,
+            panMouseDown = 0,  dragPanning = false, zoomMouseDown = 0, keyPressed = false, keyUpped = true, 
+            pinging = false, userID, fireUser, fireInventory, localPixels = {}, localUsers = {}, tutorialStep = 0;
         
         // Authentication
         $scope.authenticate = function() {
@@ -30,26 +31,21 @@ angular.module('Plasma.controllers', [])
                     if(error.code == 'INVALID_USER') {
                         auth.createUser($scope.loginEmail, $scope.loginPassword, 
                             function(createdError, createdUser) {
-                            if(createdError) {
-                                console.log(createdError);
-                            } else {
+                            if(createdError) { console.log(createdError); } else {
                                 console.log('user created:',createdUser.id,createdUser.email);
                                 userID = createdUser.id;
                                 $scope.user = createdUser;
                                 fireRef.auth(createdUser.token, function() {
                                     fireUser = fireRef.child('users').child(userID);
-                                    fireUser.set({heartbeats: 0,new:'true'}, function() {
-                                        initUser();
-                                    });
+                                    fireUser.set({heartbeats: 0, new: 'true', 
+                                        nick: createdUser.email.substr(0,createdUser.indexOf('@'))}, 
+                                        function() { initUser(); });
                                     $timeout(function() { $scope.authStatus = 'logged'; });
                                 });
                             }
                         })
-                    } else if(error.code == 'INVALID_PASSWORD') {
-                        $scope.authStatus = 'badPass';
-                    } else if(error.code == 'INVALID_EMAIL') {
-                        $scope.authStatus = 'badEmail';
-                    }
+                    } else if(error.code == 'INVALID_PASSWORD') { $scope.authStatus = 'badPass'; } else 
+                    if(error.code == 'INVALID_EMAIL') { $scope.authStatus = 'badEmail'; }
                 } else if(user) {
                     console.log('logged in:',user.id,user.email);
                     $scope.user = user;
@@ -57,10 +53,7 @@ angular.module('Plasma.controllers', [])
                     fireUser = fireRef.child('users').child(userID);
                     initUser();
                     $scope.authStatus = 'logged';
-                } else {
-                    console.log('logged out');
-                    $scope.authStatus = 'notLogged';
-                }
+                } else { console.log('logged out'); $scope.authStatus = 'notLogged'; }
             });
         });
         
@@ -149,7 +142,7 @@ angular.module('Plasma.controllers', [])
         zoomHighCanvas.onselectstart = function() { return false; };
         
         $scope.resetUser = function() {
-            fireUser.set({heartbeats: 0, new: 'true'});
+            fireUser.set({heartbeats: 0, new: 'true', nick: 'Veggies'});
         };
         
         $scope.changeZoom = function(val) {
@@ -163,8 +156,8 @@ angular.module('Plasma.controllers', [])
             zoomSize = [600/zoomPixSize,600/zoomPixSize];
             var offset = [oldZoom[0]-zoomSize[0],oldZoom[1]-zoomSize[1]];
             if(!viewCenter) { 
-                viewCenter = [$scope.zoomPosition[0] + $scope.zoomLevel[0]/2, 
-                $scope.zoomPosition[1] + $scope.zoomLevel[1]/2];
+                viewCenter = [$scope.zoomPosition[0] + zoomSize[0]/2, 
+                $scope.zoomPosition[1] + zoomSize[1]/2];
                 lastZoomPosition = $scope.zoomPosition;
             } else {
                 var fixedCoords = [Math.floor(viewCenter[0]-oldZoom[0]/2),Math.floor(viewCenter[1]-oldZoom[1]/2)];
@@ -300,10 +293,12 @@ angular.module('Plasma.controllers', [])
                 if(localPixels.hasOwnProperty($scope.overPixel[0] + ":" + $scope.overPixel[1])) {
                     $scope.selectedCell = localPixels[$scope.overPixel[0] + ":" + $scope.overPixel[1]];
                     $scope.selectedCell.grid = $scope.overPixel[0] + ":" + $scope.overPixel[1];
+                    $scope.selectedCell.ownerNick = localUsers[$scope.selectedCell.owner].nick;
                 } else { $scope.selectedCell = null; }
                 dimPixel(); // Will draw select box
                 if(!$scope.selectedCell) { return; }
-                if($scope.selectedCell.type == 'brain' && tutorialStep == 2) { tutorial('next'); }
+                if($scope.selectedCell.type == 'brain' && $scope.selectedCell.owner == $scope.user.id 
+                    && tutorialStep == 2) { tutorial('next'); }
             });
         };
         
@@ -485,7 +480,7 @@ angular.module('Plasma.controllers', [])
         jQuery(mainHighCanvas).mouseup(panOnMouseUp);
         jQuery(window).resize(alignCanvases); // Re-align canvases on window resize
         
-        // When a pixel is added
+        // When a cell is added/changed
         var drawPixel = function(snapshot) {
             if(snapshot.val().owner == userID && !localPixels.hasOwnProperty(snapshot.name())) { $scope.userCells++; }
             localPixels[snapshot.name()] = snapshot.val();
@@ -493,10 +488,11 @@ angular.module('Plasma.controllers', [])
             canvasUtility.drawZoomPixel(zoomContext,snapshot.val().color.hex,coords,$scope.zoomPosition,zoomPixSize);
             canvasUtility.fillMainArea(mainContext,snapshot.val().color.hex,coords,[1,1]);
         };
-        // When a pixel is removed
+        // When a cell is removed
         var clearPixel = function(snapshot) {
             if(snapshot.val().owner == userID) { $scope.userCells--; }
             delete localPixels[snapshot.name()];
+            if($scope.selectedCell.grid == snapshot.name()) { $scope.selectedCell = null; dimPixel(); }
             var coords = snapshot.name().split(":");
             $timeout(function(){ alignCanvases(); }, 200); // Realign canvases
             canvasUtility.drawZoomPixel(zoomContext,'222222',coords,$scope.zoomPosition,zoomPixSize);
@@ -506,6 +502,9 @@ angular.module('Plasma.controllers', [])
         fireRef.child('cells').on('child_added', drawPixel);
         fireRef.child('cells').on('child_changed', drawPixel);
         fireRef.child('cells').on('child_removed', clearPixel);
+        fireRef.child('users').on('child_added', function(snap) { localUsers[snap.name()] = snap.val(); });
+        fireRef.child('users').on('child_changed', function(snap) { localUsers[snap.name()] = snap.val(); });
+        fireRef.child('users').on('child_removed', function(snap) { delete localUsers[snap.name()]; });
         fireRef.child('meta').child('pings').on('child_added', drawPing);
         fireRef.child('meta').child('pings').on('child_removed', hidePing);
         

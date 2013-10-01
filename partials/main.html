@@ -62,7 +62,7 @@
         </div>
         <div id="cellInfoSpacer" ng-hide="selectedCell" class="col-xs-3"></div>
         <div id="cellInfo" ng-show="selectedCell" class="col-xs-3">
-            <h2>Cell Info</h2>
+            <h2>Cell Info<small>{{ selectedCell.ownerNick }}</small></h2>
             <p><span ng-style="{background: '#'+selectedCell.color.hex}" class="item-color"></span>
                 {{ selectedCell.type | itemDisplay }}&emsp;
                 <span class="text-muted">({{ selectedCell.grid | grid }})</span>
@@ -71,7 +71,7 @@
                 <h3>Contents</h3>
                 <ul class="list-unstyled">
                     <li ng-repeat="item in selectedCell.contents">
-                        <button type="button" ng-click="harvestItem($index,item)" class="btn btn-xs btn-default">
+                        <button ng-show="selectedCell.owner == user.id" type="button" ng-click="harvestItem($index,item)" class="btn btn-xs btn-default">
                             <span class="glyphicon glyphicon-arrow-left"></span></button>
                         {{ item | itemDisplay }}
                     </li>

@@ -75,6 +75,7 @@ strong { color: #ccc; }
 
 p { color: #999; }
 h2 { color: #aaa; font-size: 18px; line-height: 22px; }
+h2 small { font-size: 14px; margin-left: 12px; }
 .well { padding: 8px; background-color: #24272b; border-color: #1b1e21; }
 
 /* --- Unresponsive Bootstrap --- */

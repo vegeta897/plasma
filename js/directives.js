@@ -72,10 +72,4 @@ angular.module('Plasma.directives', [])
             return input.split(':').join(' , ');
         }
     })
-    .filter('percent', function() {
-        return function(input) {
-            if(!input) { return '-'; }
-            return Math.round(input*100)+'%';
-        }
-    })
 ;

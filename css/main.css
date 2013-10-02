@@ -46,6 +46,7 @@ canvas { position: relative; }
 #uiContainer li button {
     position: relative; top: -1px;
     margin-right: 6px;
+    padding: 1px 5px 3px;
 }
 
 .item-color {
@@ -57,13 +58,19 @@ canvas { position: relative; }
     margin-right: 4px;
 }
 
+button .glyphicon {
+    margin-right: 3px;
+}
+
+.attach-top { position: relative; top: -6px; }
+
 #cellInfo .well { padding-bottom: 5px; display: inline-block; }
 #cellInfo h3 { font-size: 16px; margin: 0 0 10px; color: #737880; }
 #cellInfo ul { margin-bottom: 0; }
 #cellInfo li button {
     position: relative; top: -1px;
     margin-right: 6px;
-    padding: 0 4px;
+    padding: 1px 5px 2px;
 }
 
 #lifeform table { background: transparent; }

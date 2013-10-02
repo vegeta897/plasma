@@ -58,26 +58,19 @@ angular.module('Plasma.colors', [])
             }
             
         };
-        var applyAverages = function(averages) {
-            var hueOffset = Math.floor(Math.pow(Math.random(),1+Math.log(averages.total)/Math.LN10 )*180);
-            if(flip()) { hueOffset *= -1; }
-            var satMin = averages.sat > 0.5 ? 1-averages.sat : averages.sat;
-            var satMax = averages.sat > 0.5 ? averages.sat : 1-averages.sat;
-            var satOffset = Math.pow(Math.random(),1+Math.log(averages.total)/Math.LN10)
-                * satMax - Math.random()*0.2;
-            if(averages.sat > 0.5) { satOffset *= -1; }
-            if(Math.random()<satMin) { satOffset *= -1; }
-            if(flip()) { satOffset *= -1; }
-            var valMin = averages.val > 0.5? 1-averages.val : averages.val;
-            var valMax = averages.val > 0.5? averages.val : 1-averages.val;
-            var valOffset = Math.pow(Math.random(),1+Math.log(averages.total)/Math.LN10)
-                * valMax - Math.random()*0.2;
-            if(averages.val > 0.5) { valOffset *= -1; }
-            if(Math.random()<valMin) { valOffset *= -1; }
+        var applyWeight = function(oldColor, newColor, strength) {
+            if(oldColor.hue - newColor.hue > 180) { // We should go up to reach new hue
+                newColor.hue += 360;
+            } else if(newColor.hue - oldColor.hue > 180) { // We should go down to reach new hue
+                newColor.hue -= 360;
+            }
+            var hueOffset = (newColor.hue - oldColor.hue) * strength;
+            var satOffset = (newColor.sat - oldColor.sat) * strength;
+            var valOffset = (newColor.val - oldColor.val) * strength;
             var hsv = {
-                hue: averages.hue+hueOffset,
-                sat: averages.sat+satOffset,
-                val: averages.val+valOffset
+                hue: oldColor.hue+hueOffset,
+                sat: oldColor.sat+satOffset,
+                val: oldColor.val+valOffset
             };
             if(hsv.sat > 1) { hsv.sat = 1-hsv.sat%1; } // Fix out of bounds
             if(hsv.sat < 0) { hsv.sat = -1*(hsv.sat%-1); }
@@ -100,6 +93,7 @@ angular.module('Plasma.colors', [])
             generate: function(/* palette (array) OR maxMins (object has 'maxSat') */) {
             //    var palette = jQuery.isArray(arguments[0]) ? arguments[0] : undefined;
                 if(arguments[0]) {
+                    var weight = arguments[0].hasOwnProperty('strength') ? arguments[0] : undefined;
                     var maxMins = arguments[0].hasOwnProperty('maxSat') ? arguments[0] : undefined;
                     var cellType = typeof arguments[0] == 'string' ? arguments[0] : undefined;
                     if(arguments[1]) {
@@ -108,7 +102,7 @@ angular.module('Plasma.colors', [])
                 }
             //    var averages = getAverages(palette);
                 var hsv = {};
-            //    if(averages) { hsv = applyAverages(averages); } else
+                if(weight) { hsv = applyWeight(weight.oldColor, weight.newColor, weight.strength); } else
                 if(maxMins) {
                     var hueRange = maxMins.maxHue - maxMins.minHue;
                     var satRange = maxMins.maxSat - maxMins.minSat;

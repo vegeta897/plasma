@@ -54,9 +54,10 @@
                 <li class="text-muted" ng-hide="inventory">No items</li>
                 <li ng-repeat="item in inventory">
                     <button type="button" ng-disabled="item.adding" ng-click="addCell(item)" 
-                            class="btn btn-xs btn-default"><span class="glyphicon glyphicon-plus"></span></button>
-                    <span ng-init="style={background: '#'+item.color.hex}" ng-style="style" class="item-color"></span>
-                    {{ item.type | itemDisplay }}
+                            class="btn btn-xs btn-default"><span class="glyphicon glyphicon-plus"></span>
+                        <span ng-init="style={background: '#'+item.color.hex}" ng-style="style" class="item-color"></span>
+                        {{ item.type | itemDisplay }}
+                    </button>
                 </li>
             </ul>
         </div>
@@ -65,9 +66,10 @@
             <h2>Cell Info<small>{{ selectedCell.ownerNick }}</small></h2>
             <p><span ng-style="{background: '#'+selectedCell.color.hex}" class="item-color"></span>
                 {{ selectedCell.type | itemDisplay }}&emsp;
-                <span class="text-muted">({{ selectedCell.grid | grid }})</span>
+                <span class="text-muted">({{ selectedCell.grid | grid }})</span>&emsp;
+                <span class="text-muted">Age</span>&emsp;{{ heartbeats - selectedCell.created }}
             </p>
-            <div class="row">
+            <div ng-show="selectedCell.type == 'somatic'" class="row">
                 <div class="col-xs-4 hard-right">
                     <p><span class="text-muted">Health</span>&emsp;{{ selectedCell.life }}</p>
                 </div>
@@ -77,16 +79,26 @@
                     </div>
                 </div>
             </div>
+            <div ng-show="selectedCell.type == 'somatic'" class="row attach-top">
+                <div class="col-xs-12"><p>
+                    <span class="text-muted">Decay</span>&emsp;
+                    {{ (heartbeats - selectedCell.created)/2 | number:0 }} -
+                    {{ (heartbeats - selectedCell.created)*1.5 | number:0 }}
+                </p></div>
+            </div>
             <p ng-show="selectedCell.output">
-                <span class="text-muted">Output</span>&emsp;{{ selectedCell.output }}
+                <span class="text-muted">Output</span>
+                &emsp;{{ selectedCell.output }}&nbsp;&nbsp;<small class="text-muted">health</small>
             </p>
             <div ng-show="selectedCell.contents.length > 0" class="well">
                 <h3>Contents</h3>
                 <ul class="list-unstyled">
                     <li ng-repeat="item in selectedCell.contents">
                         <button ng-show="selectedCell.owner == user.id" type="button" ng-click="harvestItem($index,item)" class="btn btn-xs btn-default">
-                            <span class="glyphicon glyphicon-arrow-left"></span></button>
-                        {{ item | itemDisplay }}
+                            <span class="glyphicon glyphicon-arrow-left"></span>
+                            {{ item | itemDisplay }}
+                        </button>
+                        
                     </li>
                 </ul>
             </div>
@@ -96,7 +108,7 @@
             <table class="table">
                 <tr><td>Cells</td><td><strong>{{ userCells }}</strong></td></tr>
                 <tr><td>Heartbeats</td><td><strong>{{ heartbeats }}</strong></td></tr>
-                <tr><td>Efficiency</td><td><strong>{{ userCells/heartbeats | percent }}</strong></td></tr>
+                <tr><td>Efficiency</td><td><strong>{{ userCells/heartbeats | number:0 }}</strong>%</td></tr>
             </table>
             <button ng-show="user.id == 1" class="btn btn-warning" ng-click="waitOne()">Wait</button>
         </div>

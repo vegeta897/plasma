@@ -36,7 +36,7 @@ angular.module('Plasma.controllers', [])
                                 userID = createdUser.id;
                                 $scope.user = createdUser;
                                 fireRef.auth(createdUser.token, function() {
-                                    fireUser = fireRef.child('users').child(userID);
+                                    fireUser = fireRef.child('users/'+userID);
                                     fireUser.set({heartbeats: 0, new: 'true', 
                                         nick: createdUser.email.substr(0,createdUser.email.indexOf('@'))}, 
                                         function() { initUser(); });
@@ -50,7 +50,7 @@ angular.module('Plasma.controllers', [])
                     console.log('logged in:',user.id,user.email);
                     $scope.user = user;
                     userID = user.id;
-                    fireUser = fireRef.child('users').child(userID);
+                    fireUser = fireRef.child('users/'+userID);
                     initUser();
                     $scope.authStatus = 'logged';
                 } else { console.log('logged out'); $scope.authStatus = 'notLogged'; }
@@ -214,14 +214,14 @@ angular.module('Plasma.controllers', [])
             });
             var newContents = $scope.selectedCell.contents;
             newContents.splice(id,1);
-            fireRef.child('cells').child($scope.selectedCell.grid).child('contents').set(newContents);
+            fireRef.child('cells/'+$scope.selectedCell.grid+'/contents').set(newContents);
             if(newContents.length == 0 && tutorialStep == 3) { tutorial('next'); }
             if(item == 'energy' && tutorialStep == 5) { tutorial('next'); }
         };
         
         var heartbeat = function() {
             $timeout(function(){
-                var updatedCells = gameUtility.heartbeat(localPixels, $scope.user.id, $scope.heartbeats,
+                var updatedCells = gameUtility.heartbeat(localPixels, userID, $scope.heartbeats,
                     $scope.brain.color);
                 fireRef.child('cells').update(updatedCells); // Will update only updated cells
                 $scope.heartbeats += 1;
@@ -279,9 +279,9 @@ angular.module('Plasma.controllers', [])
                 } else { $scope.selectedCell = null; }
                 dimPixel(); // Will draw select box
                 if(!$scope.selectedCell) { return; }
-                if($scope.selectedCell.type == 'brain' && $scope.selectedCell.owner == $scope.user.id 
+                if($scope.selectedCell.type == 'brain' && $scope.selectedCell.owner == userID 
                     && tutorialStep == 2) { tutorial('next'); }
-                if($scope.selectedCell.type == 'energy' && $scope.selectedCell.owner == $scope.user.id
+                if($scope.selectedCell.type == 'energy' && $scope.selectedCell.owner == userID
                     && tutorialStep == 6) { tutorial('next'); }
             });
         };
@@ -292,9 +292,9 @@ angular.module('Plasma.controllers', [])
             if(event.which == 2) { startDragPanning(event); return; } // If middle click pressed
             dimPixel(); // Dim the pixel being drawn on
             var cell = $scope.addingCell;
-            if(!gameUtility.validLocation(localPixels, cell.type, $scope.overPixel)) { return; }
+            if(!gameUtility.validLocation(userID, localPixels, cell.type, $scope.overPixel)) { return; }
             // Add the cell in firebase
-            fireRef.child('cells').child($scope.overPixel[0] + ":" + $scope.overPixel[1]).set(
+            fireRef.child('cells/'+$scope.overPixel[0] + ":" + $scope.overPixel[1]).set(
                 {
                     owner: userID, type: cell.type, color: cell.color, created: $scope.heartbeats,
                     contents: cell.contents ? cell.contents : [], life: 100
@@ -420,7 +420,13 @@ angular.module('Plasma.controllers', [])
                         drawColor = 'rgba(' + rgb.r + (', ') + rgb.g + (', ') + rgb.b + ', 0.5)';
                     }
                     canvasUtility.drawZoomPixel(zoomHighContext, drawColor, // Highlight pixel underneath cursor
-                        $scope.overPixel, $scope.zoomPosition, zoomPixSize); 
+                        $scope.overPixel, $scope.zoomPosition, zoomPixSize);
+                    if($scope.addingCell && $scope.addingCell.type == 'energy') {
+                        var coords = [$scope.overPixel[0]-$scope.zoomPosition[0],
+                            $scope.overPixel[1]-$scope.zoomPosition[1]];
+                        var reach = $scope.addingCell.type == 'energy' ? 2 : 0;
+                        canvasUtility.drawReach(zoomHighContext,coords,reach,zoomPixSize);
+                    }
                 });
             }
         };
@@ -431,9 +437,20 @@ angular.module('Plasma.controllers', [])
             coords = [coords[0]-$scope.zoomPosition[0],coords[1]-$scope.zoomPosition[1]];
             canvasUtility.drawSelect(zoomHighContext,coords,zoomPixSize);
         };
+        // Draw the selected cell's reach
+        var drawReach = function() {
+            if(!$scope.selectedCell) { return; }
+            var reach = $scope.selectedCell.type == 'energy' ? 2 : 0;
+            var coords = $scope.selectedCell.grid.split(':');
+            coords = [coords[0]-$scope.zoomPosition[0],coords[1]-$scope.zoomPosition[1]];
+            canvasUtility.drawReach(zoomHighContext,coords,reach,zoomPixSize);
+        };
         // Dim the pixel after leaving it
         var dimPixel = function() {
             canvasUtility.fillCanvas(zoomHighContext,'erase');
+            if($scope.selectedCell && $scope.selectedCell.hasOwnProperty('output')) {
+                drawReach();
+            }
             drawSelect();
         };
         // When the mouse leaves the canvas
@@ -458,12 +475,12 @@ angular.module('Plasma.controllers', [])
         var ping = function() {
             if(pinging || $scope.overPixel[0] == '-') { return; }
             pinging = $scope.overPixel;
-            fireRef.child('meta').child('pings').child(pinging[0] + ":" + pinging[1]).set(true);
+            fireRef.child('meta/pings/'+pinging[0] + ":" + pinging[1]).set(true);
             $timeout(function(){unPing()},1600); // Keep ping for 5 seconds
         };
         // Un-ping a pixel
         var unPing = function() {
-            fireRef.child('meta').child('pings').child(pinging[0] + ":" + pinging[1]).set(null);
+            fireRef.child('meta/pings/'+pinging[0] + ":" + pinging[1]).set(null);
             pinging = false;
         };
         var drawPing = function(snapshot) { canvasUtility.drawPing(mainPingContext,snapshot.name().split(":")); };
@@ -513,8 +530,8 @@ angular.module('Plasma.controllers', [])
         fireRef.child('users').on('child_added', function(snap) { localUsers[snap.name()] = snap.val(); });
         fireRef.child('users').on('child_changed', function(snap) { localUsers[snap.name()] = snap.val(); });
         fireRef.child('users').on('child_removed', function(snap) { delete localUsers[snap.name()]; });
-        fireRef.child('meta').child('pings').on('child_added', drawPing);
-        fireRef.child('meta').child('pings').on('child_removed', hidePing);
+        fireRef.child('meta/pings').on('child_added', drawPing);
+        fireRef.child('meta/pings').on('child_removed', hidePing);
         
         var onKeyDown = function(e) {
             if(!keyUpped) { return; }

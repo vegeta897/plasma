@@ -26,8 +26,8 @@ angular.module('Plasma.game', [])
             return neighbors;
         };
         return {
-            validLocation: function(cells, cellType, loc) {
-                var neighbors, somatics = 0, specialFound;
+            validLocation: function(user, cells, cellType, loc) {
+                var neighbors, ownCellsFound = 0, specialFound;
                 switch(cellType) {
                     case 'brain': // Can't be placed on another cell
                         return !cells.hasOwnProperty(loc.join(':'));
@@ -37,7 +37,8 @@ angular.module('Plasma.game', [])
                         specialFound = false;
                         for (var i = 0; i < neighbors.length; i++) {
                             if(cells.hasOwnProperty(neighbors[i])) {
-                                if(jQuery.inArray(cells[neighbors[i]].type,['brain','energy']) > -1) { 
+                                if(jQuery.inArray(cells[neighbors[i]].type,['brain','energy']) > -1 &&
+                                    cells[neighbors[i]].owner == user) { 
                                     specialFound = true; break; }
                             }
                         }
@@ -47,11 +48,11 @@ angular.module('Plasma.game', [])
                         neighbors = [[loc[0]-1,loc[1]].join(':'), [loc[0]+1,loc[1]].join(':'),
                             [loc[0],loc[1]-1].join(':'), [loc[0],loc[1]+1].join(':')];
                         for (var j = 0; j < neighbors.length; j++) {
-                            if(cells.hasOwnProperty(neighbors[j])) {
-                                if(cells[neighbors[j]].type == 'somatic') { somatics++; }
+                            if(cells.hasOwnProperty(neighbors[j]) && cells[neighbors[j]].owner == user) {
+                                ownCellsFound++;
                             }
                         }
-                        return somatics > 1 && !cells.hasOwnProperty(loc.join(':'));
+                        return ownCellsFound > 0 && !cells.hasOwnProperty(loc.join(':'));
                         break;
                     default: return false; break; // Can't place unknown cell type!
                 }
@@ -70,7 +71,7 @@ angular.module('Plasma.game', [])
                         var age1 = heartbeats - cell1.created;
                         var decay = 0;
                         switch(cell1.type) { // Subtract health based on cell type
-                            case 'somatic': decay = Math.round(randomRange(age1,1.5*(age1))); break;
+                            case 'somatic': decay = Math.round(randomRange(age1/2,1.5*(age1))); break;
                             case 'brain': // Energy cell every 5 turns
                                 if(age1 > 0 && age1%4 == 0) { cell1.contents.push('energy'); }
                                 break;
@@ -78,7 +79,7 @@ angular.module('Plasma.game', [])
                                 if(age1 == 0) { cell1.output = 15 } else {
                                     cell1.output -= Math.round(randomRange(1,2)); }
                                 if(cell1.output >= 0) {
-                                    healers.push({output:cell1.output,
+                                    healers.push({hue:cell1.color.hsv.hue,output:cell1.output,
                                         neighbors:getNeighbors(grid1.split(':'),2)});
                                 }
                                 break;
@@ -87,6 +88,7 @@ angular.module('Plasma.game', [])
                         if(cell1.output <= 0) { // If output is dry, convert to somatic
                             cell1.type = 'somatic'; cell1.output = null;
                             cell1.color = colorUtility.generate('somatic',brainColor);
+                            cell1.created = heartbeats; // Reset age
                         }
                     }
                 }
@@ -109,7 +111,11 @@ angular.module('Plasma.game', [])
                         for(var j = 0; j < healers.length; j++) { // Apply healing
                             var healer = healers[j];
                             for(var jj = 0; jj < healer.neighbors.length; jj++) {
-                                if(healer.neighbors[jj] == grid2) {
+                                if(healer.neighbors[jj] == grid2 && cell2.type == 'somatic') {
+                                    cell2.color = colorUtility.generate({strength: healer.output/80, 
+                                        oldColor: cell2.color.hsv, 
+                                        newColor: {hue:healer.hue,sat:cell2.color.hsv.sat,val:cell2.color.hsv.val}
+                                    });
                                     cell2.life += healer.output; break; // Heal and break!
                                 }
                             }
@@ -155,15 +161,16 @@ angular.module('Plasma.game', [])
                         break;
                     case 6:
                         text = 'Ooh, an energy cell!\n' +
-                            'Most cells lose health every heartbeat. The older they are, the more ' +
+                            'Somatic cells lose health every heartbeat. The older they are, the more ' +
                             'health they lose after every heartbeat. When a cell reaches 0 health, it dies.\n' +
+                            'You can see how much a cell will decay in the next heartbeat by selecting it.\n' +
                             'Energy cells provide life to your cells after every heartbeat to combat this.\n' +
-                            'The "reach" of an energy cell\'s sustenance is 2 cells. You can see this reach' +
-                            'by clicking on the energy cell.\nPlace your energy cell now, and select it!';
+                            'The "reach" of an energy cell\'s sustenance is 2 cells, ' +
+                            'which you can see when placing the cell.\n' +
+                            'Place your energy cell now. It must be next to at least one of your other cells.';
                         break;
                     case 7:
-                        text = 'The "reach" of an energy cell\'s sustenance is 2 cells. You can see this reach ' +
-                            'when the cell is selected, as well as more info below.\n' +
+                        text = 'Now select the energy cell to see some information about it.\n' +
                             'The energy cell\'s output per heartbeat is displayed. This output decreases ' +
                             'gradually as the cell ages. When it reaches 0, the cell becomes somatic.\n';
                         break;

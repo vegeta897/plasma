@@ -5,16 +5,43 @@ angular.module('Plasma.canvas', [])
         var mainPixSize = 2;
         return {
             drawSelect: function(context,coords,pixSize) {
+                var x = coords[0], y = coords[1];
                 var thickness = pixSize < 16 ? 1 : pixSize < 31 ? 2 : 3;
                 context.fillStyle = 'rgba(255, 255, 255, 0.7)';
-                context.fillRect(coords[0] * pixSize-thickness, coords[1] * pixSize-thickness, // Outer box
+                context.fillRect(x * pixSize-thickness, y * pixSize-thickness, // Outer box
                     pixSize+thickness*2, pixSize+thickness*2);
-                context.clearRect(coords[0] * pixSize+2*thickness, coords[1] * pixSize-thickness, // Vertical
+                context.clearRect(x * pixSize+2*thickness, y * pixSize-thickness, // Vertical
                     pixSize-4*thickness, pixSize+thickness*2);
-                context.clearRect(coords[0] * pixSize-thickness, coords[1] * pixSize+2*thickness, // Horizontal
+                context.clearRect(x * pixSize-thickness, y * pixSize+2*thickness, // Horizontal
                     pixSize+thickness*2, pixSize-4*thickness);
-                context.clearRect(coords[0] * pixSize, coords[1] * pixSize, // Inner box
+                context.clearRect(x * pixSize, y * pixSize, // Inner box
                     pixSize, pixSize);
+            },
+            drawReach: function(context,coords,reach,pixSize) {
+                if(pixSize<12) { return; }
+                var x = coords[0]*pixSize, y = coords[1]*pixSize;
+                context.lineWidth = pixSize < 32 ? 2 : 4;
+                context.strokeStyle = 'rgba(200, 255, 200, 0.4)';
+                var dirs = [{x:1,y:-1},{x:1,y:1},{x:-1,y:1},{x:-1,y:-1}];
+                context.beginPath();
+                var loc = {x:x-pixSize*reach,y:y}; // Keep track of where we are so we can apply relative coords
+                context.moveTo(loc.x,loc.y);
+                for(var i = 0; i < 4; i++) {
+                    var traverseX = function(i) {
+                        loc = {x:loc.x+pixSize*dirs[i].x,y:loc.y}; context.lineTo(loc.x,loc.y);
+                    };
+                    var traverseY = function(i) {
+                        loc = {x:loc.x,y:loc.y+pixSize*dirs[i].y}; context.lineTo(loc.x,loc.y);
+                    };
+                    for(var ii = 0; ii < reach+1; ii++) {
+                        if(i % 2 == 0) { traverseX(i); } else { traverseY(i); }
+                        if(ii < reach) {
+                            if(i % 2 == 0) { traverseY(i); } else { traverseX(i); }
+                        }
+                    }
+                }
+                context.closePath();
+                context.stroke();
             },
             drawZoomPixel: function(context,color,coords,zoomPosition,pixSize) {
                 var x = parseInt(coords[0]), y = parseInt(coords[1]);

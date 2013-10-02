@@ -26,7 +26,7 @@ angular.module('Plasma.canvas', [])
             },
             drawCellHealth: function(context,color,life,coords,zoomPosition,pixSize) {
                 var x = (coords[0]-zoomPosition[0]) * pixSize, y = (coords[1]-zoomPosition[1]) * pixSize;
-                var border = Math.ceil(pixSize/10); var rgb = colorUtility.hexToRGB(color);
+                var border = Math.ceil(pixSize/8); var rgb = colorUtility.hexToRGB(color);
                 context.fillStyle = 'rgba('+rgb.r+', '+rgb.g+', '+rgb.b+', '+life/100+')';
                 context.clearRect(x + border, y + border, pixSize - border*2, pixSize - border*2);
                 context.fillRect(x + border, y + border, pixSize - border*2, pixSize - border*2);

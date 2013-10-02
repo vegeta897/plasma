@@ -2,7 +2,7 @@
 
 angular.module('Plasma.colors', [])
     .factory('colorUtility', function() {
-        var hsvToRGB = function(hsv) {
+        var hsvToHex = function(hsv) {
             var h = hsv.hue, s = hsv.sat, v = hsv.val, rgb, i, data = [];
             if (s === 0) { rgb = [v,v,v]; } 
             else {
@@ -120,9 +120,23 @@ angular.module('Plasma.colors', [])
                     };
                 } else if(cellType && brainColor) {
                     switch(cellType) {
-                        case 'somatic':
+                        case 'brain':
+                            hsv = {
+                                hue: Math.floor(Math.random()*360),
+                                sat: Math.round(Math.random()*30 + 60)/100,
+                                val: Math.round(Math.random()*15 + 65)/100
+                            };
+                            break;
+                        case 'somatic': // Dimmer duller brain color
                             hsv = {
                                 hue: brainColor.hsv.hue + Math.floor(Math.random()*26 - 13),
+                                sat: Math.round(Math.random()*25 + 20)/100,
+                                val: Math.round(Math.random()*10 + 40)/100
+                            };
+                            break;
+                        case 'energy': // Dimmer duller +35 hue from brain color
+                            hsv = {
+                                hue: brainColor.hsv.hue + 40 + Math.floor(Math.random()*12 - 6),
                                 sat: Math.round(Math.random()*25 + 20)/100,
                                 val: Math.round(Math.random()*10 + 40)/100
                             };
@@ -141,44 +155,9 @@ angular.module('Plasma.colors', [])
                     hsv.hue = 360 + (hsv.hue % 360);
                 }
                 return {
-                    hex: hsvToRGB(hsv),
+                    hex: hsvToHex(hsv),
                     hsv: hsv
                 };
-            },
-            tutorial: function(step) {
-                var text = '';
-                switch(parseInt(step)) {
-                    case 0:
-                        text = 'To begin, add a Brain Cell to your inventory.';
-                        break;
-                    case 1:
-                        text = 'Great! Now click the [+] button, and place it somewhere on the map.';
-                        break;
-                    case 2:
-                        text = 'Woo! There\'s your brain cell.\n' +
-                            'The brain cell is the center of your new life form.\n' +
-                            'Any cell you place from now on must connect to either your brain, ' +
-                            'or another cell you placed.\n' +
-                            'Click on your brain cell to view its properties.';
-                        break;
-                    case 3:
-                        text = 'When you select one of your cells, its properties are shown.\n' +
-                            'You can see the color, cell type, and the cell\'s contents.\n' + 
-                            'Certain cells produce certain contents at certain rates.\n' +
-                            'Click the buttons to transfer the contents to your inventory.';
-                        break;
-                    case 4:
-                        text = 'Excellent! Now you can place these new cells around your brain cell.\n' +
-                            'Somatic cells are the most basic type of cell, and can only be placed ' + 
-                            'next to special cells like the brain.';
-                        break;
-                    case 5:
-                        text = 'Great, you\'re up to a 5 cell organism!\n' +
-                            'Each cell you place makes some time pass. This time span is called a heartbeat.\n' +
-                            'As heartbeats increment, your cells produce new contents to harvest.';
-                        break;
-                }
-                return text;
             },
             rgbToHex: function rgbToHex(r, g, b) {
                 if (r > 255 || g > 255 || b > 255)

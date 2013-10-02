@@ -1,11 +1,8 @@
 /* Canvas drawing service */
 
 angular.module('Plasma.canvas', [])
-    .factory('canvasUtility', function() {
+    .factory('canvasUtility', function(colorUtility) {
         var mainPixSize = 2;
-        var someFunction = function() {
-            
-        };
         return {
             drawSelect: function(context,coords,pixSize) {
                 var thickness = pixSize < 16 ? 1 : pixSize < 31 ? 2 : 3;
@@ -20,14 +17,31 @@ angular.module('Plasma.canvas', [])
                     pixSize, pixSize);
             },
             drawZoomPixel: function(context,color,coords,zoomPosition,pixSize) {
-                var x = coords[0], y = coords[1];
+                var x = parseInt(coords[0]), y = parseInt(coords[1]);
                 if(x < zoomPosition[0] || // Check that pixel is within zoom area
-                    x >= zoomPosition[0]+(600/pixSize) ||
-                    y < zoomPosition[1] ||
+                    x >= zoomPosition[0]+(600/pixSize) || y < zoomPosition[1] ||
                     y >= zoomPosition[1]+(600/pixSize)) { return; }
                 context.fillStyle = color.charAt(0) == 'r' ? color : '#' + color;
-                context.fillRect(parseInt(x-zoomPosition[0]) * pixSize,
-                    parseInt(y-zoomPosition[1]) * pixSize, pixSize, pixSize);
+                context.fillRect((x-zoomPosition[0]) * pixSize, (y-zoomPosition[1]) * pixSize, pixSize, pixSize);
+            },
+            drawCellHealth: function(context,color,life,coords,zoomPosition,pixSize) {
+                var x = (coords[0]-zoomPosition[0]) * pixSize, y = (coords[1]-zoomPosition[1]) * pixSize;
+                var border = Math.ceil(pixSize/10); var rgb = colorUtility.hexToRGB(color);
+                context.fillStyle = 'rgba('+rgb.r+', '+rgb.g+', '+rgb.b+', '+life/100+')';
+                context.clearRect(x + border, y + border, pixSize - border*2, pixSize - border*2);
+                context.fillRect(x + border, y + border, pixSize - border*2, pixSize - border*2);
+                
+            },
+            drawCellHealthBar: function(context,life,coords,zoomPosition,pixSize) {
+                var x = coords[0]-zoomPosition[0], y = coords[1]-zoomPosition[1];
+                var padding = pixSize < 10 ? -1 : pixSize < 21 ? 0 : 1;
+                if(padding == -1) { return; }
+                context.fillStyle = '#000000';
+                context.fillRect(x * pixSize + padding, y * pixSize + pixSize - 2 - 3 * padding,
+                    pixSize-padding*2, padding*2+2);
+                context.fillStyle = '#FFFFFF';
+                context.fillRect(x * pixSize + 2 * padding,
+                    y * pixSize + pixSize - 2 - 2 * padding, (pixSize-4*padding)*life/100, 2);
             },
             fillCanvas: function(context,color) {
                 var method = color == 'erase' ? 'clearRect' : 'fillRect';
@@ -40,15 +54,15 @@ angular.module('Plasma.canvas', [])
                 context[method](coords[0]*mainPixSize,coords[1]*mainPixSize,size[0]*mainPixSize,size[1]*mainPixSize);
             },
             drawPing: function(context,coords) {
-                var my_gradient = context.createRadialGradient(
+                var pingGradient = context.createRadialGradient(
                     coords[0]*mainPixSize + mainPixSize/2, coords[1]*mainPixSize + mainPixSize/2, 5,
                     coords[0]*mainPixSize + mainPixSize/2, coords[1]*mainPixSize + mainPixSize/2, 0
                 );
-                my_gradient.addColorStop(0, "rgba(255, 255, 255, 0)");
-                my_gradient.addColorStop(0.2, "rgba(255, 255, 255, 1)");
-                my_gradient.addColorStop(0.4, "rgba(255, 255, 255, 0)");
-                my_gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
-                context.fillStyle = my_gradient;
+                pingGradient.addColorStop(0, "rgba(255, 255, 255, 0)");
+                pingGradient.addColorStop(0.2, "rgba(255, 255, 255, 1)");
+                pingGradient.addColorStop(0.4, "rgba(255, 255, 255, 0)");
+                pingGradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+                context.fillStyle = pingGradient;
                 context.beginPath();
                 context.arc(coords[0]*mainPixSize + mainPixSize/2,
                     coords[1]*mainPixSize + mainPixSize/2, 5, 0, 2 * Math.PI, false);

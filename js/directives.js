@@ -60,7 +60,7 @@ angular.module('Plasma.directives', [])
     .filter('itemDisplay', function() {
         return function(input) {
             if(!input) { return input; }
-            var cellTypes = ['brain','somatic'];
+            var cellTypes = ['brain','somatic','energy'];
             input = jQuery.inArray(input,cellTypes) >= 0 ? input + ' Cell' : input;
             input = input.charAt(0).toUpperCase() + input.slice(1);
             return input.substring(0,1).toUpperCase()+input.substring(1);

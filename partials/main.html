@@ -37,7 +37,7 @@
     </div>
     <div class="col-xs-2 text-right hard-right pull-right coords">
         <input type="text" class="zoom-slider" value="" data-slider-handle="square" data-slider-min="0"
-               data-slider-max="9" data-slider-selection="none" data-slider-value="3" data-slider-tooltip="hide">
+               data-slider-max="8" data-slider-selection="none" data-slider-value="3" data-slider-tooltip="hide">
     </div>
 </div>
 <div id="uiContainer" ng-show="userInit" class="container">
@@ -77,6 +77,9 @@
                     </div>
                 </div>
             </div>
+            <p ng-show="selectedCell.output">
+                <span class="text-muted">Output</span>&emsp;{{ selectedCell.output }}
+            </p>
             <div ng-show="selectedCell.contents.length > 0" class="well">
                 <h3>Contents</h3>
                 <ul class="list-unstyled">
@@ -95,6 +98,7 @@
                 <tr><td>Heartbeats</td><td><strong>{{ heartbeats }}</strong></td></tr>
                 <tr><td>Efficiency</td><td><strong>{{ userCells/heartbeats | percent }}</strong></td></tr>
             </table>
+            <button ng-show="user.id == 1" class="btn btn-warning" ng-click="waitOne()">Wait</button>
         </div>
     </div>
 </div>

@@ -64,7 +64,7 @@ angular.module('Plasma.controllers', [])
                 } else { tutorialStep = 0; }
             } else { tutorialStep++; }
             $timeout(function() { 
-                $scope.helpText = colorUtility.tutorial(tutorialStep);
+                $scope.helpText = gameUtility.tutorial(tutorialStep);
                 localStorageService.set('tutorialStep',tutorialStep);
             });
         };
@@ -144,12 +144,15 @@ angular.module('Plasma.controllers', [])
         $scope.resetUser = function() {
             fireUser.set({heartbeats: 0, new: 'true', nick: 'Veggies'});
         };
+        $scope.waitOne = function() {
+            heartbeat();
+        };
         
         $scope.changeZoom = function(val) {
             if($scope.zoomLevel == val && viewCenter) { return; }
             $timeout(function(){});
             var oldZoom = zoomSize;
-            var zoomLevels = [5,8,10,12,15,20,30,40,50,60];
+            var zoomLevels = [5,8,10,12,15,20,30,40,60];
             $scope.zoomLevel = parseInt(val);
             localStorageService.set('zoomLevel',$scope.zoomLevel);
             zoomPixSize = zoomLevels[$scope.zoomLevel];
@@ -180,8 +183,7 @@ angular.module('Plasma.controllers', [])
         $scope.addBrain = function() {
             tutorial('next');
             $scope.brain = {};
-            $scope.brain.color = colorUtility.generate({ minHue: 0, maxHue: 360, 
-                minSat: 50, maxSat: 100, minVal: 65, maxVal: 80});
+            $scope.brain.color = colorUtility.generate('brain',{hsv:true});
             fireUser.child('brain').set(angular.copy($scope.brain));
             fireInventory.push({
                 type: 'brain', color: $scope.brain.color,
@@ -214,14 +216,16 @@ angular.module('Plasma.controllers', [])
             newContents.splice(id,1);
             fireRef.child('cells').child($scope.selectedCell.grid).child('contents').set(newContents);
             if(newContents.length == 0 && tutorialStep == 3) { tutorial('next'); }
+            if(item == 'energy' && tutorialStep == 5) { tutorial('next'); }
         };
         
         var heartbeat = function() {
             $timeout(function(){
+                var updatedCells = gameUtility.heartbeat(localPixels, $scope.user.id, $scope.heartbeats,
+                    $scope.brain.color);
+                fireRef.child('cells').update(updatedCells); // Will update only updated cells
                 $scope.heartbeats += 1;
                 fireUser.child('heartbeats').set($scope.heartbeats);
-                var updatedCells = gameUtility.heartbeat(localPixels, $scope.user.id, $scope.heartbeats);
-                fireRef.child('cells').update(updatedCells); // Will update only updated cells
             });
         };
         
@@ -277,6 +281,8 @@ angular.module('Plasma.controllers', [])
                 if(!$scope.selectedCell) { return; }
                 if($scope.selectedCell.type == 'brain' && $scope.selectedCell.owner == $scope.user.id 
                     && tutorialStep == 2) { tutorial('next'); }
+                if($scope.selectedCell.type == 'energy' && $scope.selectedCell.owner == $scope.user.id
+                    && tutorialStep == 6) { tutorial('next'); }
             });
         };
         
@@ -312,6 +318,8 @@ angular.module('Plasma.controllers', [])
                     var coords = pixKey.split(":");
                     canvasUtility.drawZoomPixel(zoomContext,localPixels[pixKey].color.hex,
                         coords,$scope.zoomPosition,zoomPixSize);
+                    canvasUtility.drawCellHealth(zoomContext,localPixels[pixKey].color.hex,
+                        localPixels[pixKey].life,coords,$scope.zoomPosition,zoomPixSize);
                 }
             }
         };
@@ -439,7 +447,7 @@ angular.module('Plasma.controllers', [])
         var zoomScroll = function(event, delta, deltaX, deltaY){
             if(deltaY < 0 && $scope.zoomLevel > 0) {
                 $scope.changeZoom($scope.zoomLevel - 1);
-            } else if(deltaY > 0 && $scope.zoomLevel < 9) {
+            } else if(deltaY > 0 && $scope.zoomLevel < 8) {
                 $scope.changeZoom($scope.zoomLevel + 1);
             }
             $('.zoom-slider').slider('setValue',$scope.zoomLevel);
@@ -483,6 +491,8 @@ angular.module('Plasma.controllers', [])
             var coords = snapshot.name().split(":");
             canvasUtility.drawZoomPixel(zoomContext,snapshot.val().color.hex,coords,$scope.zoomPosition,zoomPixSize);
             canvasUtility.fillMainArea(mainContext,snapshot.val().color.hex,coords,[1,1]);
+            canvasUtility.drawCellHealth(zoomContext,snapshot.val().color.hex,snapshot.val().life,
+                coords,$scope.zoomPosition,zoomPixSize);
         };
         // When a cell is removed
         var clearPixel = function(snapshot) {
@@ -494,7 +504,7 @@ angular.module('Plasma.controllers', [])
             var coords = snapshot.name().split(":");
             $timeout(function(){ alignCanvases(); }, 200); // Realign canvases
             canvasUtility.drawZoomPixel(zoomContext,'222222',coords,$scope.zoomPosition,zoomPixSize);
-            canvasUtility.fillMainArea(mainContext,'erase',coords,[1,1]);
+            canvasUtility.fillMainArea(mainContext,'222222',coords,[1,1]);
         };
         // Firebase listeners
         fireRef.child('cells').on('child_added', drawPixel);

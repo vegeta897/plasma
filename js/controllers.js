@@ -38,7 +38,7 @@ angular.module('Plasma.controllers', [])
                                 fireRef.auth(createdUser.token, function() {
                                     fireUser = fireRef.child('users').child(userID);
                                     fireUser.set({heartbeats: 0, new: 'true', 
-                                        nick: createdUser.email.substr(0,createdUser.indexOf('@'))}, 
+                                        nick: createdUser.email.substr(0,createdUser.email.indexOf('@'))}, 
                                         function() { initUser(); });
                                     $timeout(function() { $scope.authStatus = 'logged'; });
                                 });

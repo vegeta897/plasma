@@ -117,24 +117,27 @@ angular.module('Plasma.colors', [])
                         case 'brain':
                             hsv = {
                                 hue: Math.floor(Math.random()*360),
-                                sat: Math.round(Math.random()*30 + 60)/100,
-                                val: Math.round(Math.random()*15 + 65)/100
-                            };
-                            break;
+                                sat: Math.round(Math.random()*20 + 75)/100,
+                                val: Math.round(Math.random()*20 + 75)/100
+                            }; break;
                         case 'somatic': // Dimmer duller brain color
                             hsv = {
-                                hue: brainColor.hsv.hue + Math.floor(Math.random()*26 - 13),
+                                hue: brainColor.hsv.hue + Math.floor(Math.random()*20 - 10),
                                 sat: Math.round(Math.random()*25 + 20)/100,
                                 val: Math.round(Math.random()*10 + 40)/100
-                            };
-                            break;
-                        case 'energy': // Dimmer duller +35 hue from brain color
+                            }; break;
+                        case 'energy': // Dimmer duller +40 hue from brain color
                             hsv = {
-                                hue: brainColor.hsv.hue + 40 + Math.floor(Math.random()*12 - 6),
-                                sat: Math.round(Math.random()*25 + 20)/100,
+                                hue: brainColor.hsv.hue + 45 + Math.floor(Math.random()*10 - 5),
+                                sat: Math.round(Math.random()*25 + 30)/100,
                                 val: Math.round(Math.random()*10 + 40)/100
-                            };
-                            break;
+                            }; break;
+                        case 'germ': // Dimmer duller -40 hue from brain color
+                            hsv = {
+                                hue: brainColor.hsv.hue - 45 + Math.floor(Math.random()*10 - 5),
+                                sat: Math.round(Math.random()*25 + 30)/100,
+                                val: Math.round(Math.random()*10 + 40)/100
+                            }; break;
                     }
                 } else {
                     hsv = {

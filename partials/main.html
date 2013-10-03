@@ -69,7 +69,7 @@
                 <span class="text-muted">({{ selectedCell.grid | grid }})</span>&emsp;
                 <span class="text-muted">Age</span>&emsp;{{ heartbeats - selectedCell.created }}
             </p>
-            <div ng-show="selectedCell.type == 'somatic'" class="row">
+            <div ng-show="selectedCell.type == 'somatic' || selectedCell.type == 'germ'" class="row">
                 <div class="col-xs-4 hard-right">
                     <p><span class="text-muted">Health</span>&emsp;{{ selectedCell.life }}</p>
                 </div>
@@ -79,7 +79,7 @@
                     </div>
                 </div>
             </div>
-            <div ng-show="selectedCell.type == 'somatic'" class="row attach-top">
+            <div ng-show="selectedCell.type == 'somatic' || selectedCell.type == 'germ'" class="row attach-top">
                 <div class="col-xs-12"><p>
                     <span class="text-muted">Decay</span>&emsp;
                     {{ (heartbeats - selectedCell.created)/2 | number:0 }} -
@@ -108,7 +108,7 @@
             <table class="table">
                 <tr><td>Cells</td><td><strong>{{ userCells }}</strong></td></tr>
                 <tr><td>Heartbeats</td><td><strong>{{ heartbeats }}</strong></td></tr>
-                <tr><td>Efficiency</td><td><strong>{{ userCells/heartbeats | number:0 }}</strong>%</td></tr>
+                <tr><td>Efficiency</td><td><strong>{{ userCells/heartbeats*100 | number:0 }}</strong>%</td></tr>
             </table>
             <button ng-show="user.id == 1" class="btn btn-warning" ng-click="waitOne()">Wait</button>
         </div>

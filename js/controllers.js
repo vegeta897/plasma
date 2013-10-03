@@ -8,7 +8,7 @@ angular.module('Plasma.controllers', [])
         $scope.authStatus = '';
         $scope.helpText = '';
         $scope.userCells = 0;
-        $scope.zoomLevel = 3;
+        $scope.zoomLevel = 6;
         $scope.addingCell = {};
         var mainPixSize = 2, zoomPixSize = 12, zoomSize = [50,50], lastZoomPosition = [0,0], viewCenter, panOrigin,
             panMouseDown = 0,  dragPanning = false, zoomMouseDown = 0, keyPressed = false, keyUpped = true, 
@@ -200,6 +200,7 @@ angular.module('Plasma.controllers', [])
         
         $scope.cancelAddCell = function() {
             $timeout(function() {
+                dimPixel();
                 $scope.addingCell.adding = false;
                 $scope.addingCell = {};
                 jQuery(zoomHighCanvas).unbind('mousedown');
@@ -217,6 +218,7 @@ angular.module('Plasma.controllers', [])
             fireRef.child('cells/'+$scope.selectedCell.grid+'/contents').set(newContents);
             if(newContents.length == 0 && tutorialStep == 3) { tutorial('next'); }
             if(item == 'energy' && tutorialStep == 5) { tutorial('next'); }
+            if(item == 'germ' && tutorialStep == 8) { tutorial('next'); }
         };
         
         var heartbeat = function() {
@@ -274,15 +276,13 @@ angular.module('Plasma.controllers', [])
             $timeout(function() {
                 if(localPixels.hasOwnProperty($scope.overPixel[0] + ":" + $scope.overPixel[1])) {
                     $scope.selectedCell = localPixels[$scope.overPixel[0] + ":" + $scope.overPixel[1]];
-                    $scope.selectedCell.grid = $scope.overPixel[0] + ":" + $scope.overPixel[1];
                     $scope.selectedCell.ownerNick = localUsers[$scope.selectedCell.owner].nick;
                 } else { $scope.selectedCell = null; }
                 dimPixel(); // Will draw select box
                 if(!$scope.selectedCell) { return; }
                 if($scope.selectedCell.type == 'brain' && $scope.selectedCell.owner == userID 
                     && tutorialStep == 2) { tutorial('next'); }
-                if($scope.selectedCell.type == 'energy' && $scope.selectedCell.owner == userID
-                    && tutorialStep == 6) { tutorial('next'); }
+                
             });
         };
         
@@ -290,9 +290,9 @@ angular.module('Plasma.controllers', [])
             if($scope.authStatus != 'logged') { return; } // If not authed
             if(event.which == 3) { $scope.cancelAddCell(); event.preventDefault(); return; } // If right click pressed
             if(event.which == 2) { startDragPanning(event); return; } // If middle click pressed
-            dimPixel(); // Dim the pixel being drawn on
             var cell = $scope.addingCell;
             if(!gameUtility.validLocation(userID, localPixels, cell.type, $scope.overPixel)) { return; }
+            dimPixel(); // Dim the pixel being drawn on
             // Add the cell in firebase
             fireRef.child('cells/'+$scope.overPixel[0] + ":" + $scope.overPixel[1]).set(
                 {
@@ -305,6 +305,7 @@ angular.module('Plasma.controllers', [])
                 $scope.brain.grid = $scope.overPixel.join(':'); 
                 fireUser.child('brain').update($scope.brain);
             }
+            if(cell.type == 'energy' && tutorialStep == 6) { tutorial('next'); }
             $scope.addingCell = {};
             jQuery(zoomHighCanvas).unbind('mousedown');
             jQuery(zoomHighCanvas).mousedown(selectCell);
@@ -320,6 +321,9 @@ angular.module('Plasma.controllers', [])
                         coords,$scope.zoomPosition,zoomPixSize);
                     canvasUtility.drawCellHealth(zoomContext,localPixels[pixKey].color.hex,
                         localPixels[pixKey].life,coords,$scope.zoomPosition,zoomPixSize);
+                    if(localPixels[pixKey].owner == userID && localPixels[pixKey].hasOwnProperty('contents')) {
+                        canvasUtility.drawCellContents(zoomContext,localPixels[pixKey],
+                            coords,$scope.zoomPosition,zoomPixSize); }
                 }
             }
         };
@@ -497,12 +501,12 @@ angular.module('Plasma.controllers', [])
         
         // When a cell is added/changed
         var drawPixel = function(snapshot) {
-            if(snapshot.val().owner == userID && !localPixels.hasOwnProperty(snapshot.name())) { 
+            if(snapshot.val().owner == userID && !localPixels.hasOwnProperty(snapshot.name())) {
                 $scope.userCells++; }
             localPixels[snapshot.name()] = snapshot.val();
+            localPixels[snapshot.name()].grid = snapshot.name(); // Add grid and owner nickname properties
             if($scope.selectedCell && $scope.selectedCell.grid == snapshot.name()) { // If updated selected cell
                 $scope.selectedCell = snapshot.val();
-                $scope.selectedCell.grid = snapshot.name(); // Add grid and owner nickname properties
                 $scope.selectedCell.ownerNick = localUsers[$scope.selectedCell.owner].nick;
             } 
             var coords = snapshot.name().split(":");
@@ -510,6 +514,9 @@ angular.module('Plasma.controllers', [])
             canvasUtility.fillMainArea(mainContext,snapshot.val().color.hex,coords,[1,1]);
             canvasUtility.drawCellHealth(zoomContext,snapshot.val().color.hex,snapshot.val().life,
                 coords,$scope.zoomPosition,zoomPixSize);
+            if(snapshot.val().owner == userID && snapshot.val().hasOwnProperty('contents')) {
+                canvasUtility.drawCellContents(zoomContext,snapshot.val(),
+                    coords,$scope.zoomPosition,zoomPixSize); }
         };
         // When a cell is removed
         var clearPixel = function(snapshot) {

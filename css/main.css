@@ -45,7 +45,6 @@ canvas { position: relative; }
 #uiContainer li { margin-bottom: 3px; }
 #uiContainer li button {
     position: relative; top: -1px;
-    margin-right: 6px;
     padding: 1px 5px 3px;
 }
 
@@ -69,7 +68,6 @@ button .glyphicon {
 #cellInfo ul { margin-bottom: 0; }
 #cellInfo li button {
     position: relative; top: -1px;
-    margin-right: 6px;
     padding: 1px 5px 2px;
 }
 

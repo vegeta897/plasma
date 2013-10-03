@@ -57,7 +57,20 @@ angular.module('Plasma.canvas', [])
                 context.fillStyle = 'rgba('+rgb.r+', '+rgb.g+', '+rgb.b+', '+life/100+')';
                 context.clearRect(x + border, y + border, pixSize - border*2, pixSize - border*2);
                 context.fillRect(x + border, y + border, pixSize - border*2, pixSize - border*2);
-                
+            },
+            drawCellContents: function(context,cell,coords,zoomPosition,pixSize) {
+                if(pixSize<12) { return; } var itemSize = Math.ceil(pixSize/8);
+                var x = (coords[0]-zoomPosition[0]) * pixSize, y = (coords[1]-zoomPosition[1]) * pixSize;
+                if(cell.color.hsv.val > 0.8) { context.fillStyle = 'rgba(0, 0, 0, 0.5)'; } else {
+                    context.fillStyle = 'rgba(255, 255, 255, 0.5)'; }
+                for(var i = 0; i < cell.contents.length; i++) {
+                    var padding = Math.ceil(itemSize/2);
+                    if(x + itemSize*(i+1) + padding*i + itemSize > x + pixSize - itemSize) {
+                        context.fillRect(x + itemSize*(i-2) + padding*(i-3), y + itemSize*2 + padding, 
+                            itemSize, itemSize); } else {
+                        context.fillRect(x + itemSize*(i+1) + padding*i, y + itemSize, itemSize, itemSize);
+                    }
+                }
             },
             drawCellHealthBar: function(context,life,coords,zoomPosition,pixSize) {
                 var x = coords[0]-zoomPosition[0], y = coords[1]-zoomPosition[1];
